@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TrichoRendr</title>
+<link rel="stylesheet" href="window.css">
+</head>
+<body>
+  <section id="stage">
+    <div id="tabs">
+      <button id="tab-view" class="on">Viewport</button>
+      <button id="tab-render" disabled>Render</button>
+      <button id="tab-stats">Stats</button>
+      <button id="refresh" hidden title="The camera moved. On a big model the preview takes a few seconds, so it updates when you ask.">Refresh preview</button>
+    </div>
+    <div id="view"><span id="empty">Loading viewport…</span><img id="img" alt="" hidden></div>
+    <div id="stats" hidden></div>
+  </section>
+
+  <aside>
+    <h1>Tricho<span>Rendr</span> <small id="version"></small></h1>
+    <div class="seg">
+      <label><input type="radio" name="pane" value="output" checked><span>Output</span></label>
+      <label><input type="radio" name="pane" value="look"><span>Look</span></label>
+      <label><input type="radio" name="pane" value="materials"><span>Materials</span></label>
+    </div>
+
+    <div class="pane" id="pane-output">
+    <fieldset id="what">
+      <legend>What to render</legend>
+      <div class="seg">
+        <label><input type="radio" name="mode" value="view"><span>Current view</span></label>
+        <label><input type="radio" name="mode" value="scenes"><span>Scenes</span></label>
+      </div>
+      <div id="scenes" hidden>
+        <label class="all"><input type="checkbox" id="all"><span>All scenes</span><span class="hint" id="count"></span></label>
+        <ul id="scene-list"></ul>
+        <div class="hint" id="no-scenes" hidden>This model has no scenes. Add them in Window → Scenes.</div>
+      </div>
+    </fieldset>
+
+    <fieldset id="output" hidden>
+      <legend>Save to</legend>
+      <div id="folder" title=""></div>
+      <div class="row">
+        <button class="plain grow" id="pick">Change…</button>
+        <button class="plain grow" id="open">Open folder</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Resolution</legend>
+      <select id="width">
+        <option value="3000x1300">3000 × 1300 px</option>
+        <option value="640">640 px wide · viewport shape</option>
+        <option value="1280">1280 px wide · viewport shape</option>
+        <option value="1920">1920 px wide · viewport shape</option>
+        <option value="2560">2560 px wide · viewport shape</option>
+        <option value="3840">3840 px wide · viewport shape</option>
+        <option value="custom">Custom size…</option>
+      </select>
+      <div class="row" id="custom-size" hidden>
+        <input type="number" id="cw" min="320" max="7680" step="1"><span class="hint">×</span>
+        <input type="number" id="ch" min="240" max="7680" step="1"><span class="hint">px</span>
+      </div>
+      <div class="hint" id="size"></div>
+    </fieldset>
+
+    <fieldset id="quality">
+      <legend>Quality</legend>
+      <select id="preset">
+        <option value="8">Fast preview · 8 samples</option>
+        <option value="16">Draft · 16 samples</option>
+        <option value="32">Normal · 32 samples</option>
+        <option value="128">High · 128 samples</option>
+        <option value="512">Best · 512 samples</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <div class="row" id="custom" hidden>
+        <input type="number" id="samples" min="1" max="4096" step="1"><span class="hint">samples</span>
+      </div>
+      <div class="hint">More samples = cleaner glass, water and shadows; the denoiser hides most noise already.</div>
+    </fieldset>
+    </div>
+
+    <div class="pane" id="pane-look" hidden>
+      <fieldset>
+        <legend>Preset</legend>
+        <select id="mood" title="Sets all Look settings in one go: light, image, background and materials."></select>
+        <div class="links row"><a id="mood-save">Save as my preset…</a><a id="mood-delete" hidden>Delete this preset</a></div>
+        <div class="row" id="mood-new" hidden>
+          <input type="text" id="mood-name" maxlength="40" placeholder="Name, e.g. Zahrada ráno" spellcheck="false">
+          <button class="plain" id="mood-ok">Save</button>
+        </div>
+      </fieldset>
+      <div id="look"></div>
+      <div class="hint">Double-click a slider to reset it. Which materials become water, glass or lights: Materials tab.</div>
+      <div class="links"><a id="look-reset">Reset all to defaults</a></div>
+    </div>
+
+    <div class="pane" id="pane-materials" hidden>
+      <fieldset>
+        <legend><span class="tip" title="A material gets this look when its name contains one of the words.
+Case and accents don't matter (bazén = bazen), part of a name is enough: voda also finds Voda_bazén 2.
+Separate words with commas. Used from the next render on.">Found by name</span></legend>
+        <div class="word">
+          <div class="item"><span class="tip" title="Clear water with ripples; you see the bottom and sunlight reaches it.
+Look tab: Water color, Water ripples.">Water</span><span class="hint">clear, with ripples</span></div>
+          <textarea id="words-water" rows="3" spellcheck="false"></textarea>
+        </div>
+        <div class="word">
+          <div class="item"><span class="tip" title="Thin glass that reflects the sky. Only see-through materials (opacity below 100 %).
+Without a texture they are glass anyway; with a texture only when the name has one of these words.
+Look tab: Glass reflections.">Glass</span><span class="hint">see-through, reflects the sky</span></div>
+          <textarea id="words-glass" rows="2" spellcheck="false"></textarea>
+        </div>
+        <div class="word">
+          <div class="item"><span class="tip" title="Gives off light: lamps, lit windows, LED strips, fire.
+Look tab: Glowing materials.">Glowing</span><span class="hint">gives off light</span></div>
+          <textarea id="words-glow" rows="2" spellcheck="false"></textarea>
+        </div>
+        <div class="links"><a id="words-reset">Reset words to defaults</a></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Found automatically</legend>
+        <div class="item"><span class="tip" title="Scenes or views with Camera > Parallel Projection: no perspective,
+white background (unless Background is Transparent), no lens flare.">Plans (půdorys)</span><span class="hint">white background</span></div>
+        <div class="item"><span class="tip" title="A texture with transparent parts is cut out to its shape and casts that shadow.
+Look tab: Sun through leaves.">PNG trees, plants</span><span class="hint">cut out</span></div>
+        <div class="item"><span class="tip" title="Components set to Always face camera (2D trees, people) turn to the render camera.">Face-me components</span><span class="hint">face the camera</span></div>
+        <div class="item"><span class="tip" title="Any material with opacity below 100 % and no texture renders as glass.">See-through colors</span><span class="hint">glass</span></div>
+        <div class="item"><span class="tip" title="Faces without a material get the front face color of the SketchUp style.">Unpainted faces</span><span class="hint">style color</span></div>
+        <div class="item"><span class="tip" title="Hidden objects and tags are not rendered. In a batch, each scene's own hidden things count.">Hidden things</span><span class="hint">not rendered</span></div>
+        <div class="item"><span class="tip" title="Direction from SketchUp's Shadows settings (time and date), also when shadows are off in SketchUp.">Sun</span><span class="hint">from Shadows settings</span></div>
+      </fieldset>
+    </div>
+
+    <div class="actions">
+      <button class="big" id="start">Start render</button>
+      <button class="big" id="cancel" hidden>Cancel</button>
+      <button class="plain" id="save" disabled>Save as…</button>
+    </div>
+  </aside>
+
+  <footer>
+    <div id="status"><span id="text">Ready</span><span id="eta"></span></div>
+    <div id="bar"><div id="fill"></div></div>
+    <div id="err" hidden>
+      <div><b id="err-what"></b> <span id="err-todo"></span></div>
+      <div class="links row"><a id="err-copy">Copy details</a><a id="err-more">Show details</a><a class="open-logs">Open logs folder</a></div>
+      <pre id="err-details" hidden></pre>
+    </div>
+  </footer>
+
+<script src="window.js"></script>
+</body>
+</html>

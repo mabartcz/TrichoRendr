@@ -1,0 +1,10 @@
+[package]
+name = "tricho_rendr"
+description = "Starts Blender for a TrichoRendr render job without a console window"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true

@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust (fmt, clippy, test, package)
+    runs-on: windows-latest # the launcher is a Windows GUI exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+      - run: cargo xtask package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tricho_rendr-rbz
+          path: dist/*.rbz
+
+  ruby:
+    name: Ruby (syntax, rubocop)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2" # SketchUp 2024-2026 embed Ruby 3.2
+      - name: Syntax
+        run: for f in $(git ls-files 'plugin/*.rb'); do ruby -wc "$f" || exit 1; done
+      - run: gem install rubocop --no-document
+      - run: rubocop plugin
+
+  python:
+    name: Python (ruff, fixture)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check .
+      - run: python -m py_compile plugin/tricho_rendr/blender/cycles.py tools/look_variants.py tests/fixtures/make_job.py
+      - name: Fixture job generates
+        run: python tests/fixtures/make_job.py target/fixture && test -s target/fixture/scene.json
+
+  ui:
+    name: Window JS (syntax)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --check plugin/tricho_rendr/ui/window.js

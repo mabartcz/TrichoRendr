@@ -1,0 +1,28 @@
+# Rust
+/target/
+
+# Build output
+/dist/
+/plugin/tricho_rendr/bin/
+
+# Python
+__pycache__/
+*.pyc
+.ruff_cache/
+
+# Ruby
+.rubocop-*
+
+# Blender
+*.blend1
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Claude Code: personal settings (launch.json is shared)
+.claude/settings.local.json

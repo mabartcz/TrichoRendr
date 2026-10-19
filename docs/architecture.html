@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrichoRendr Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a drawing sheet. Title block on top, a sticky stage strip, then one section per pipeline stage,
+   each pairing a short explanation with a working model of the idea. */
+:root {
+  --paper: #eef1ee; --panel: #fbfcfb; --ink: #1c2524; --muted: #5a6764; --line: #c6cfcb;
+  --moss: #2e6a4d; --sky: #2c5d91; --sun: #a96a14; --warn: #a23b2c;
+  --moss-soft: #dce9e1; --sky-soft: #dbe5f0; --sun-soft: #f3e6cf;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #111716; --panel: #182120; --ink: #e2e9e6; --muted: #92a19c; --line: #2b3633;
+  --moss: #72bb92; --sky: #7eaadc; --sun: #e2a84e; --warn: #e88a7b;
+  --moss-soft: #1d3329; --sky-soft: #1b2a3b; --sun-soft: #33281a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #111716; --panel: #182120; --ink: #e2e9e6; --muted: #92a19c; --line: #2b3633;
+  --moss: #72bb92; --sky: #7eaadc; --sun: #e2a84e; --warn: #e88a7b;
+  --moss-soft: #1d3329; --sky-soft: #1b2a3b; --sun-soft: #33281a; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: .2px; text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(38px, 7vw, 64px); font-weight: 700; }
+h2 { font-size: clamp(28px, 4.2vw, 38px); }
+h3 { font-size: 22px; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+a { color: var(--sky); }
+.muted { color: var(--muted); }
+.label { font-family: var(--display); text-transform: uppercase; letter-spacing: 1.4px; font-size: 13px; color: var(--muted); }
+
+/* Title block, like the corner of a drawing sheet */
+.sheet { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end;
+         border: 1.5px solid var(--ink); padding: 22px 24px; background: var(--panel); }
+.sheet .intro { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.tblock { display: grid; grid-template-columns: auto auto; border: 1px solid var(--ink); font-size: 13px; min-width: 0; }
+.tblock div { padding: 4px 10px; border-bottom: 1px solid var(--line); }
+.tblock div:nth-child(odd) { color: var(--muted); border-right: 1px solid var(--line); font-family: var(--display);
+                             text-transform: uppercase; letter-spacing: 1px; }
+.tblock div:nth-last-child(-n+2) { border-bottom: 0; }
+@media (max-width: 720px) { .sheet { grid-template-columns: 1fr; } }
+
+/* Stage strip */
+nav.stages { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper);
+             border-bottom: 1px solid var(--line); margin-top: 24px; }
+nav.stages ol { list-style: none; margin: 0; padding: 8px 0; display: flex; gap: 4px; overflow-x: auto; }
+nav.stages a { display: block; white-space: nowrap; text-decoration: none; color: var(--muted); padding: 4px 10px;
+               font-family: var(--display); font-size: 16px; border-radius: 3px; }
+nav.stages a:hover, nav.stages a:focus-visible { color: var(--ink); background: var(--moss-soft); outline: none; }
+nav.stages b { color: var(--moss); margin-right: 4px; }
+
+section { padding-top: 56px; display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 56px; }
+.head { display: flex; flex-direction: column; gap: 6px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+.col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel h3 { font-size: 20px; }
+.analogy { border-left: 3px solid var(--sky); padding: 4px 0 4px 12px; color: var(--ink); background: none; }
+.analogy b { color: var(--sky); font-weight: 600; }
+
+/* Pipeline diagram */
+.flow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 860px) { .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.node { text-align: left; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line);
+        padding: 10px 12px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; min-width: 0; position: relative; }
+.node:hover { border-color: var(--muted); }
+.node:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+.node[aria-pressed="true"] { border-color: var(--moss); box-shadow: inset 0 -3px 0 var(--moss); }
+.node .n { font-family: var(--display); font-size: 13px; color: var(--muted); letter-spacing: 1px; }
+.node .t { font-family: var(--display); font-size: 21px; font-weight: 600; line-height: 1.1; }
+.node .lang { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.node .time { font-family: var(--mono); font-size: 12px; color: var(--sun); margin-top: auto; }
+.detail { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 820px) { .detail { grid-template-columns: 1fr; } }
+dl.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; margin: 0; font-size: 14px; }
+dl.kv dt { color: var(--muted); font-family: var(--display); text-transform: uppercase; letter-spacing: 1px; font-size: 13px; padding-top: 2px; }
+dl.kv dd { margin: 0; min-width: 0; }
+
+/* Widgets */
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: 14px; }
+.controls label { display: inline-flex; gap: 6px; align-items: center; }
+input[type=range] { accent-color: var(--moss); width: 160px; max-width: 100%; }
+input[type=checkbox] { accent-color: var(--moss); }
+input[type=text] { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line); padding: 5px 8px; min-width: 0; width: 100%; }
+button.btn { font: 500 14px var(--body); color: var(--ink); background: var(--paper); border: 1px solid var(--line); padding: 5px 12px; cursor: pointer; }
+button.btn:hover { border-color: var(--muted); }
+button.btn:focus-visible, input:focus-visible { outline: 2px solid var(--sky); outline-offset: 1px; }
+.stage-svg { width: 100%; height: auto; display: block; background: var(--paper); border: 1px solid var(--line); }
+canvas.pt { width: 100%; height: auto; image-rendering: pixelated; display: block; border: 1px solid var(--line); background: var(--paper); }
+.readout { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.readout b { color: var(--ink); font-weight: 500; }
+
+/* Code */
+pre.code { margin: 0; background: var(--paper); border: 1px solid var(--line); padding: 12px 14px; overflow-x: auto;
+           font: 13px/1.55 var(--mono); color: var(--ink); }
+pre.code .c { color: var(--muted); }
+pre.code .k { color: var(--sky); }
+pre.code .y { color: var(--moss); }
+
+/* Tables */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--display); text-transform: uppercase; letter-spacing: 1px; font-size: 13px; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag { display: inline-block; font-family: var(--mono); font-size: 11.5px; padding: 0 6px; border: 1px solid; border-radius: 2px; white-space: nowrap; }
+.tag.scene { color: var(--sun); border-color: var(--sun); }
+.tag.shader { color: var(--moss); border-color: var(--moss); }
+.tag.post { color: var(--sky); border-color: var(--sky); }
+
+/* Timing bars */
+.bars { display: flex; flex-direction: column; gap: 6px; }
+.bar { display: grid; grid-template-columns: 210px minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 13.5px; }
+@media (max-width: 560px) { .bar { grid-template-columns: 120px minmax(0, 1fr) 54px; } }
+.bar .track { height: 14px; background: var(--paper); border: 1px solid var(--line); position: relative; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; }
+.bar .v { font-family: var(--mono); font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Material classifier result */
+.path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.step { font-size: 13px; padding: 3px 8px; border: 1px solid var(--line); color: var(--muted); }
+.step.hit { color: var(--ink); border-color: var(--moss); background: var(--moss-soft); }
+.step.no { text-decoration: line-through; opacity: .6; }
+.result { font-family: var(--display); font-size: 26px; font-weight: 600; }
+
+/* Compositor chain */
+.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+.chain .box { border: 1px solid var(--line); background: var(--panel); padding: 8px 10px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chain .box b { font-family: var(--display); font-size: 17px; font-weight: 600; }
+.chain .arrow { align-self: center; color: var(--muted); font-family: var(--mono); }
+
+/* Decision cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+details.card { background: var(--panel); border: 1px solid var(--line); padding: 12px 14px; }
+details.card summary { cursor: pointer; font-family: var(--display); font-size: 19px; font-weight: 600; list-style: none; display: flex; gap: 8px; }
+details.card summary::-webkit-details-marker { display: none; }
+details.card summary::before { content: "+"; color: var(--moss); font-family: var(--mono); }
+details.card[open] summary::before { content: "−"; }
+details.card p { margin-top: 8px; font-size: 14.5px; }
+details.card .meas { margin-top: 8px; font-family: var(--mono); font-size: 12.5px; color: var(--sun); }
+
+pre.mermaid { white-space: pre; background: var(--panel); border: 1px solid var(--line); padding: 12px; overflow-x: auto; margin: 0; }
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="sheet">
+    <div class="intro">
+      <span class="label">How a render happens</span>
+      <h1>TrichoRendr Architecture</h1>
+      <p>A SketchUp garden becomes a picture through three programs that only talk through one folder of files.
+        This sheet walks through each stage, says why it is built that way, and lets you poke at the 3D ideas
+        behind it, explained for a backend developer. The reference for the formats is
+        <a href="ARCHITECTURE.md">ARCHITECTURE.md</a>.</p>
+    </div>
+    <div class="tblock" aria-label="Reference model">
+      <div>Reference model</div><div>Her garden, 13 scenes</div>
+      <div>Unique triangles</div><div class="mono">840,025</div>
+      <div>Instances</div><div class="mono">30,217</div>
+      <div>In Blender</div><div class="mono">3,280,826 tris</div>
+      <div>Materials</div><div class="mono">250 · 118 textured</div>
+      <div>GPU</div><div>GTX 1060 6 GB · OptiX</div>
+    </div>
+  </header>
+
+  <nav class="stages" aria-label="Stages">
+    <ol>
+      <li><a href="#map"><b>0</b>Map</a></li>
+      <li><a href="#shapes"><b>1</b>Shapes</a></li>
+      <li><a href="#export"><b>2</b>Export</a></li>
+      <li><a href="#job"><b>3</b>Job folder</a></li>
+      <li><a href="#build"><b>4</b>Scene rebuild</a></li>
+      <li><a href="#materials"><b>5</b>Materials</a></li>
+      <li><a href="#trace"><b>6</b>Path tracing</a></li>
+      <li><a href="#look"><b>7</b>Look</a></li>
+      <li><a href="#talk"><b>8</b>Progress</a></li>
+      <li><a href="#errors"><b>9</b>Errors &amp; logs</a></li>
+      <li><a href="#caches"><b>10</b>Caches</a></li>
+      <li><a href="#why"><b>11</b>Why</a></li>
+    </ol>
+  </nav>
+
+  <!-- 0 MAP -->
+  <section id="map">
+    <div class="head"><span class="label">Stage 0</span><h2>The whole run on one line</h2>
+      <p class="muted">Click a box. Times are measured on her garden.</p></div>
+    <div class="flow" role="group" aria-label="Pipeline stages">
+      <button class="node" data-i="0"><span class="n">A</span><span class="t">Window</span><span class="lang">HTML · JS</span><span class="time">instant</span></button>
+      <button class="node" data-i="1"><span class="n">B</span><span class="t">Export</span><span class="lang">Ruby in SketchUp</span><span class="time">~1 min · or 0 s reused</span></button>
+      <button class="node" data-i="2"><span class="n">C</span><span class="t">Job folder</span><span class="lang">%TEMP%\TrichoRendr</span><span class="time">~112 MB</span></button>
+      <button class="node" data-i="3"><span class="n">D</span><span class="t">Launcher</span><span class="lang">Rust · tricho_rendr.exe</span><span class="time">~0 s</span></button>
+      <button class="node" data-i="4"><span class="n">E</span><span class="t">Blender</span><span class="lang">Python · cycles.py</span><span class="time">~10 s build</span></button>
+      <button class="node" data-i="5"><span class="n">F</span><span class="t">Cycles</span><span class="lang">C++ · GPU</span><span class="time">~5 s prep + samples</span></button>
+    </div>
+    <div class="panel detail" id="map-detail" aria-live="polite"></div>
+  </section>
+
+  <!-- 1 SHAPES -->
+  <section id="shapes">
+    <div class="head"><span class="label">Stage 1 · 3D basics</span><h2>Shapes are triangles, components are shared pointers</h2></div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Faces become triangles</h3>
+        <p>SketchUp stores a face as a polygon (any number of corners, can be concave). A GPU and a ray tracer
+          only understand triangles, so every face is cut into triangles: a polygon with <i>n</i> corners always
+          gives <i>n − 2</i>. SketchUp does the cutting for us (<code>face.mesh</code>).</p>
+        <svg id="tri-svg" class="stage-svg" viewBox="0 0 320 200" role="img" aria-label="A garden bed polygon and its triangles"></svg>
+        <div class="controls">
+          <button class="btn" id="tri-toggle">Show triangles</button>
+          <button class="btn" id="tri-new">Another bed shape</button>
+          <span class="readout" id="tri-read"></span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Definitions and instances</h3>
+        <p>A component (a tree, a bench) has one <b>definition</b> (its triangles) and many <b>instances</b>,
+          each just a 4 × 4 transform matrix (move, rotate, scale) plus an optional material.</p>
+        <p class="analogy"><b>Backend terms:</b> the definition is an <code>Arc&lt;Mesh&gt;</code>; an instance is
+          <code>(Arc&lt;Mesh&gt;, Mat4)</code>. The export writes each mesh once; Blender later copies it per
+          instance (“flattening”), like cloning out of the Arc.</p>
+        <svg id="inst-svg" class="stage-svg" viewBox="0 0 320 150" role="img" aria-label="Tree instances"></svg>
+        <div class="controls">
+          <label>Instances <input type="range" id="inst-n" min="1" max="40" value="12"></label>
+          <span class="readout" id="inst-read"></span>
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Front and back: the winding order</h3>
+        <p>Which side of a triangle is the front comes from the order of its corners: counter-clockwise when you
+          look at the front. SketchUp gives every face a front and a back material. A <b>mirrored</b> instance
+          (scale −1, determinant &lt; 0) reverses the order, so the renderer would show the back material on the
+          front. <code>cycles.py</code> therefore swaps front and back for mirrored copies.</p>
+        <svg id="wind-svg" class="stage-svg" viewBox="0 0 320 170" role="img" aria-label="Triangle winding order"></svg>
+        <div class="controls"><label><input type="checkbox" id="wind-mirror"> Mirror the instance</label>
+          <span class="readout" id="wind-read"></span></div>
+      </div>
+      <div class="panel">
+        <h3>Textures and UVs</h3>
+        <p>A texture is an image. Each triangle corner carries a <b>UV</b>: a 2D coordinate into that image
+          (0..1, repeating beyond). The renderer interpolates UVs across the triangle and reads the pixel there.
+          Front and back can use different images, so every triangle has two UV sets.</p>
+        <p class="analogy"><b>Backend terms:</b> UVs are a lookup key per vertex; the texture is the table. A PNG
+          with transparency gives an alpha value per pixel, which is how a flat card becomes a tree shape.</p>
+        <p class="muted">Our export only asks SketchUp for UVs on sides that can carry a texture; plain colours
+          get zeros. That saves a lot of Ruby time on big untextured surfaces.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 EXPORT -->
+  <section id="export">
+    <div class="head"><span class="label">Stage 2 · Ruby inside SketchUp</span><h2>Export: walk the model without freezing SketchUp</h2></div>
+    <div class="grid2">
+      <div class="col">
+        <p>SketchUp runs all Ruby on its UI thread and its API is not thread-safe. A one-minute export in one go
+          would freeze SketchUp for a minute. So the export runs in a <b>Fiber</b> (a coroutine): it works for
+          0.1 s, yields, a UI timer resumes it about 30 ms later, and SketchUp stays usable in between.</p>
+        <p class="analogy"><b>Backend terms:</b> cooperative multitasking on a single-threaded executor, with
+          <code>Fiber.yield</code> as the <code>.await</code> point and <code>UI.start_timer</code> as the waker.
+          One rule bit us: never yield in the middle of a SketchUp iterator; iterate a copied array instead,
+          because the model can change while we are paused.</p>
+        <p>The walk is a depth-first stack over groups and components. For each definition seen the first time,
+          it writes the triangles (<code>pos.bin</code>), UVs and material ids. For every instance it writes one
+          140-byte record with the accumulated transform. Hidden objects and hidden tags are skipped. Textures are
+          written once into a cache folder, named by a hash, and reused across renders.</p>
+      </div>
+      <div class="panel">
+        <h3>The export loop, simplified</h3>
+<pre class="code"><span class="c"># exporter.rb (simplified)</span>
+stack = [[model.entities, :root, IDENTITY, inherited_mat, no_faceme]]
+<span class="k">until</span> stack.empty?
+  entities, key, xf, mat, fm = stack.pop
+  mesh = mesh_id(key, entities)   <span class="c"># first time: faces -> triangles -> bins</span>
+  inst.write(mesh, mat, fm, xf) <span class="k">if</span> mesh
+  entities.to_a.each <span class="k">do</span> |e|         <span class="c"># to_a: safe to pause inside</span>
+    <span class="k">next unless</span> group_or_component?(e) && visible?(e)
+    pause                          <span class="c"># Fiber.yield when the 0.1 s slice is used up</span>
+    stack &lt;&lt; [e.definition.entities, e.definition,
+              xf * e.transformation, e.material || mat, faceme?(e)]
+  <span class="k">end</span>
+<span class="k">end</span></pre>
+        <p class="muted">Face-me components (2D trees that always turn to the camera) get an index instead of a
+          baked rotation: SketchUp 2024+ reports stale transforms for them, so Blender turns each one to the
+          render camera itself.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 JOB -->
+  <section id="job">
+    <div class="head"><span class="label">Stage 3 · The contract</span><h2>The job folder is the API</h2>
+      <p>Ruby and Blender never call each other. Ruby writes flat little-endian arrays plus one JSON file;
+        Blender reads them with numpy in one call each. Sizes are from her garden.</p></div>
+    <div class="grid2">
+      <pre class="code"><span class="c">// pos.bin: per unique triangle, definition-local inches</span>
+<span class="k">struct</span> <span class="y">Tri</span>    { v: [[f64; 3]; 3] }                      <span class="c">// 72 B</span>
+<span class="c">// uv.bin: front corners, then back corners</span>
+<span class="k">struct</span> <span class="y">TriUv</span>  { front: [[f32; 2]; 3], back: [[f32; 2]; 3] } <span class="c">// 48 B</span>
+<span class="c">// mat.bin: index into scene.json materials, -1 = inherit</span>
+<span class="k">struct</span> <span class="y">TriMat</span> { front: i32, back: i32 }                  <span class="c">// 8 B</span>
+<span class="c">// inst.bin: one per placed copy</span>
+#[repr(C, packed)]
+<span class="k">struct</span> <span class="y">Instance</span> {
+    mesh: u32,       <span class="c">// which definition (triangle range in scene.json)</span>
+    material: i32,   <span class="c">// painted on the instance, used where faces say -1</span>
+    faceme: i32,     <span class="c">// -1 or index into scene.json faceme</span>
+    xf: [f64; 16],   <span class="c">// 4x4 transform, column-major, inches</span>
+}                    <span class="c">// 140 B</span></pre>
+      <div class="tablewrap"><table>
+        <thead><tr><th>File</th><th>Holds</th><th>Her garden</th></tr></thead>
+        <tbody>
+          <tr><td><code>pos.bin</code></td><td>840,025 unique triangles</td><td class="num">60.5 MB</td></tr>
+          <tr><td><code>uv.bin</code></td><td>2 UV sets per triangle</td><td class="num">40.3 MB</td></tr>
+          <tr><td><code>mat.bin</code></td><td>front/back material per triangle</td><td class="num">6.7 MB</td></tr>
+          <tr><td><code>inst.bin</code></td><td>30,217 instances</td><td class="num">4.2 MB</td></tr>
+          <tr><td><code>scene.json</code></td><td>camera, sun, look, words, 250 materials, 378 meshes, 447 face-me</td><td class="num">177 KB</td></tr>
+          <tr><td><code>blender.txt</code></td><td>Blender's output: progress lines + log</td><td class="num">~2 KB</td></tr>
+          <tr><td><code>pass_N.png</code>, <code>render.png</code></td><td>preview passes, final image</td><td class="num">~0.6 MB each</td></tr>
+          <tr><td><code>cancel</code></td><td>empty file; its existence means stop</td><td class="num">0 B</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <p class="muted">Nothing in the bins depends on the camera or the look. That is what makes the export
+      reusable: a new camera angle, sun time or look slider only rewrites the 177 KB <code>scene.json</code>.</p>
+  </section>
+
+  <!-- 4 BUILD -->
+  <section id="build">
+    <div class="head"><span class="label">Stage 4 · Python inside Blender</span><h2>Scene rebuild: from flat arrays to a Blender scene</h2>
+      <p>Each render starts a fresh Blender in the background (<code>blender -b --factory-startup</code>), so the
+        scene is rebuilt from the bins every time. Measured on her garden at 900 × 390 px, 16 samples, one pass.</p></div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="bars" id="bars"></div>
+        <p class="readout" id="bars-total"></p>
+      </div>
+      <div class="col">
+        <p><b>Flatten.</b> For each mesh, numpy multiplies its triangles by every instance matrix at once
+          (<code>einsum</code>), subtracts the camera position and converts inches to meters. Face-me cards
+          get their turn-to-camera rotation first. Mirrored copies swap front and back.</p>
+        <p><b>Pair materials.</b> Each triangle has a (front, back) material pair. Each distinct pair
+          becomes one Blender material that switches on “am I seeing the back?”. Packing each pair into one
+          integer made this step 2.8 s faster (a 1-D sort instead of sorting rows).</p>
+        <p><b>Build one mesh.</b> All 3.28 M triangles go into a single Blender mesh with bulk
+          <code>foreach_set</code> calls, no per-triangle Python.</p>
+        <p class="muted">Tried and rejected: keeping components as Cycles instances. With 30,000 separate
+          objects the build and BVH got slower: 38.7 s against 19.2 s for the whole run.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 MATERIALS -->
+  <section id="materials">
+    <div class="head"><span class="label">Stage 5 · Shaders</span><h2>Materials: names decide the shader</h2>
+      <p>SketchUp materials are just a colour, an opacity and maybe an image. Blender needs a shader: a small
+        program describing how light bounces off the surface. <code>cycles.py</code> picks one from a few rules.
+        Try a name.</p></div>
+    <div class="grid2">
+      <div class="panel">
+        <label for="m-name" class="label">Material name</label>
+        <input type="text" id="m-name" value="Voda_BAZÉN 2" spellcheck="false">
+        <div class="controls">
+          <label>Opacity <input type="range" id="m-alpha" min="0" max="100" value="100"> <span class="readout" id="m-alpha-v"></span></label>
+          <label><input type="checkbox" id="m-tex"> Has a texture</label>
+          <label><input type="checkbox" id="m-png"> PNG with transparency</label>
+        </div>
+        <div class="path" id="m-path"></div>
+        <div class="result" id="m-result"></div>
+        <p id="m-expl"></p>
+      </div>
+      <div class="col">
+        <p><b>Matching:</b> the name is lowercased and stripped of accents (Unicode NFD minus combining marks),
+          then checked for any word as a substring. She edits the word lists on the Materials tab; they travel in
+          <code>scene.json</code>.</p>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Shader</th><th>Built from</th></tr></thead>
+          <tbody>
+            <tr><td>Water</td><td>Principled BSDF, full transmission, IOR 1.333, noise bump for ripples; shadow rays pass through so pool bottoms get light</td></tr>
+            <tr><td>Glass</td><td>Transparent + a reflection-only layer (IOR 1.5). Thin glass: no refraction, so windows don't distort</td></tr>
+            <tr><td>Glowing</td><td>Emission with the material colour or texture, strength 10 × the Lamps slider</td></tr>
+            <tr><td>Cut-out leaves</td><td>Texture alpha → transparent; a Translucent mix lets sun shine through leaves</td></tr>
+            <tr><td>Everything else</td><td>Principled BSDF, roughness 0.7, colour or texture (sRGB → linear)</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 TRACE -->
+  <section id="trace">
+    <div class="head"><span class="label">Stage 6 · Cycles on the GPU</span><h2>Path tracing: averaging random rays</h2>
+      <p>For every pixel, Cycles shoots a ray from the camera, bounces it around the scene and asks how much
+        light arrives. One random ray per pixel is noisy; the pixel value is the <b>average of many samples</b>,
+        so noise falls with the square root of the sample count. Below is a tiny version from above, like a plan:
+        a block on grass, lit by a sun of real angular size and the sky.</p></div>
+    <div class="grid2">
+      <div class="panel">
+        <canvas id="pt" class="pt" width="200" height="112" aria-label="Path tracing demo: a block casting a soft shadow"></canvas>
+        <div class="controls">
+          <label>Samples <input type="range" id="pt-s" min="0" max="9" value="3"> <span class="readout" id="pt-s-v"></span></label>
+          <label>Shadow softness <input type="range" id="pt-soft" min="0" max="100" value="10"> <span class="readout" id="pt-soft-v"></span></label>
+          <label><input type="checkbox" id="pt-dn"> Denoise</label>
+        </div>
+        <p class="readout" id="pt-read"></p>
+      </div>
+      <div class="col">
+        <p><b>Rays and the BVH.</b> Testing a ray against 3.28 M triangles one by one would be hopeless. Cycles
+          first builds a <b>BVH</b>, a tree of nested boxes, so each ray only visits a few dozen. Building it,
+          and uploading textures to the GPU, is the “preparing scene” pause of about 5 s.</p>
+        <p class="analogy"><b>Backend terms:</b> the BVH is a spatial B-tree index; a ray query is a range scan
+          that prunes whole subtrees whose box the ray misses. OptiX runs that traversal on the GPU.</p>
+        <p><b>Soft shadows.</b> The sun is a disc, not a point. Rays aimed at random points on the disc hit or
+          miss the block, which gives the soft edge. The Shadow softness slider sets the disc size:
+          0.5° + 0.2° × value, the same formula as in <code>cycles.py</code>.</p>
+        <p><b>Denoising.</b> Blender runs OpenImageDenoise, a neural network that also looks at the surface
+          colour and direction per pixel, so it smooths noise without blurring edges. The toggle here is a crude
+          stand-in that only averages pixels of the same surface. With the denoiser, 32 samples look clean.</p>
+        <p><b>Passes.</b> A single render first does 4 samples (a preview appears quickly), then the full count.
+          Batch renders skip the preview.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 LOOK -->
+  <section id="look">
+    <div class="head"><span class="label">Stage 7 · From light to a picture</span><h2>Look: where each slider lands</h2>
+      <p>The renderer computes physical light values (any brightness, no upper limit). Turning that into an
+        8-bit PNG is a separate step, like a camera's picture style. Some sliders change the scene, some the
+        shaders, some only this last step.</p></div>
+    <div class="chain" aria-label="Image chain">
+      <div class="box"><b>Cycles render</b><span class="muted">linear light + mist pass</span></div><span class="arrow">→</span>
+      <div class="box"><b>Haze</b><span class="muted">mix toward haze colour by denoised depth</span></div><span class="arrow">→</span>
+      <div class="box"><b>Glow · Flare</b><span class="muted">Glare nodes</span></div><span class="arrow">→</span>
+      <div class="box"><b>Saturation</b><span class="muted">Hue/Saturation node</span></div><span class="arrow">→</span>
+      <div class="box"><b>View transform</b><span class="muted">exposure, white balance, AgX look</span></div><span class="arrow">→</span>
+      <div class="box"><b>PNG</b><span class="muted">sRGB, 8 bit</span></div>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Slider</th><th>Blender knob</th><th>Stage</th></tr></thead>
+      <tbody>
+        <tr><td>Sun and shadows, Sun strength</td><td>Sun lamp on/off, energy 5 × %</td><td><span class="tag scene">scene</span></td></tr>
+        <tr><td>Sky: Day / Sunset / Evening</td><td>Sky texture sun height: SketchUp's, 4° above, 6° below the horizon (no lamp)</td><td><span class="tag scene">scene</span></td></tr>
+        <tr><td>Shadow softness</td><td>Sun disc angle 0.5° + 0.2° × value</td><td><span class="tag scene">scene</span></td></tr>
+        <tr><td>Sky light</td><td>World background strength</td><td><span class="tag scene">scene</span></td></tr>
+        <tr><td>Background</td><td>Transparent film, or white seen only by camera rays</td><td><span class="tag scene">scene</span></td></tr>
+        <tr><td>Water colour, ripples, Glass, Leaves, Lamps</td><td>Values inside the shaders above</td><td><span class="tag shader">shader</span></td></tr>
+        <tr><td>Haze in the distance</td><td>Mist pass (starts at 3 m, full at 123 m), denoised, mixed with a fixed colour per time of day. White background: things fade to that white. Transparent: the background stays empty (mixed only where alpha is 1)</td><td><span class="tag post">post</span></td></tr>
+        <tr><td>Glow, Lens flare</td><td>Glare node: Bloom; Fog Glow + Ghosts + Sun Beams at the sun's screen position</td><td><span class="tag post">post</span></td></tr>
+        <tr><td>Saturation</td><td>Hue/Saturation node</td><td><span class="tag post">post</span></td></tr>
+        <tr><td>Style</td><td>AgX looks (Low Contrast = Soft, Punchy, High Contrast); Standard for Vivid</td><td><span class="tag post">post</span></td></tr>
+        <tr><td>Brightness, Warmth</td><td>Exposure in EV; white balance 6500 K + 25 × value</td><td><span class="tag post">post</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">None of these touch the bins, so changing the look never re-exports the model.</p>
+    <p><b>Presets</b> set every Look setting at once. The slider defaults are neutral (100 %, 0 EV);
+      <i>Basic</i> is the tuned everyday look, and the other built-in presets change only a few of its values.
+      Her own presets store all values and are saved with the settings.</p>
+  </section>
+
+  <!-- 8 TALK -->
+  <section id="talk">
+    <div class="head"><span class="label">Stage 8 · Processes talking</span><h2>Progress and cancel through files</h2>
+      <p>Blender prints <code>TR: &lt;status&gt;</code> and <code>TR_PROGRESS &lt;percent&gt; &lt;eta&gt;</code> lines. The
+        launcher sends them to <code>blender.txt</code>; Ruby reads the last of each every 0.5 s and pushes the
+        whole state into the window. Cancel is a file the launcher polls for.</p></div>
+<pre class="mermaid">
+sequenceDiagram
+  participant W as Window (HTML)
+  participant R as Ruby plugin
+  participant J as Job folder
+  participant L as Launcher (Rust)
+  participant B as Blender (cycles.py)
+  W->>R: sketchup.start(settings)
+  R->>J: write bins + scene.json (or reuse bins)
+  R->>L: spawn tricho_rendr.exe job blender.exe cycles.py
+  L->>B: start hidden (CREATE_NO_WINDOW), stdout to blender.txt
+  B->>J: TR / TR_PROGRESS lines, pass_1.png, render.png
+  loop every 0.5 s
+    R->>J: read blender.txt and the newest PNG
+    R->>W: update(state)
+  end
+  W->>R: sketchup.cancel()
+  R->>J: create the cancel file
+  L->>B: kill (checks every 200 ms)
+</pre>
+  </section>
+
+  <!-- 9 ERRORS -->
+  <section id="errors">
+    <div class="head"><span class="label">Stage 9 · When something goes wrong</span><h2>Errors in plain words, logs to send</h2>
+      <p>She is not a programmer, so a failed render must say what happened and what to do, and leave enough
+        behind for you to find the cause on her PC.</p></div>
+    <div class="grid2">
+      <div class="col">
+        <p><b>Checked before the export.</b> The launcher exe must exist and Blender must be found and be
+          version 5 or newer. Both are checked before the export, which can take a minute.</p>
+        <p><b>Known failures by pattern.</b> When Blender exits with an error, Ruby matches the launcher and
+          Blender output against a short list. The first match gives the message; anything else is “The render
+          failed.” The window shows the two sentences and a <i>details</i> box to copy (versions, render size,
+          triangle count, logs folder, last 3 KB of output).</p>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Output contains</th><th>She reads</th></tr></thead>
+          <tbody>
+            <tr><td>CUDA / OptiX / GPU … out of memory</td><td>The graphics card ran out of memory.</td></tr>
+            <tr><td>MemoryError, bad_alloc, out of memory</td><td>The computer ran out of memory.</td></tr>
+            <tr><td>No space left on device</td><td>The disk is full.</td></tr>
+            <tr><td>EXCEPTION_ACCESS_VIOLATION</td><td>Blender crashed (often the graphics driver).</td></tr>
+            <tr><td>os error (launcher could not spawn)</td><td>Blender could not be started.</td></tr>
+            <tr><td>Python traceback</td><td>Blender could not build this model.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="col">
+        <p><b>The logs folder</b> is <code>%LOCALAPPDATA%\TrichoRendr\logs</code>, opened from the window.
+          It is capped at 10 MB; the oldest entries go first.</p>
+<pre class="code">logs\
+  plugin.log                         <span class="c">this SketchUp session: pushes, JS errors, export timings</span>
+  2026-10-18 231909 session.log      <span class="c">earlier sessions (renamed at start)</span>
+  2026-10-19 101544 render done\     <span class="c">one folder per render</span>
+    blender.txt  log.txt  scene.json <span class="c">output + settings, no geometry</span>
+  2026-10-19 103012 render failed\</pre>
+        <p class="muted">On her PC: zip the folder and send it. <code>scene.json</code> holds the camera, look and
+          model numbers, so a render can be reasoned about without the model.</p>
+        <p><b>Stats tab.</b> After every render Ruby adds to running totals (renders, time, megapixels, light
+          paths, triangles, trees) in <code>usage.json</code> next to the logs. It is written to a temp file and
+          renamed, so a crash never leaves half a file. Nothing is sent anywhere.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 CACHES -->
+  <section id="caches">
+    <div class="head"><span class="label">Stage 10 · Not doing work twice</span><h2>Caches and their keys</h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Cache</th><th>Key</th><th>Saves</th></tr></thead>
+      <tbody>
+        <tr><td>Export, same session</td><td>model, edit counter (our own scene switches don't count), visibility fingerprint (tags, folders, hidden objects and faces), default face colour</td><td class="num">~1 min</td></tr>
+        <tr><td>Export, next session</td><td><code>.skp</code> path + modified time + size + visibility, stored in <code>export.json</code></td><td class="num">~1 min</td></tr>
+        <tr><td>Textures</td><td>hash of model id, material name, image file, size and colourize; files unused for 14 days are deleted</td><td class="num">seconds per image</td></tr>
+        <tr><td>Viewport preview</td><td>camera, render size, view size, tags, shadows, style, edits</td><td class="num">~4 s</td></tr>
+        <tr><td>Visibility fingerprint</td><td>edit counter, selected scene, tag and tag-folder visibility</td><td class="num">a walk over every face</td></tr>
+        <tr><td>Between passes</td><td>Blender's persistent data keeps the BVH and textures</td><td class="num">~5 s per pass</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">In a batch, scenes that show the same things share one export; only the camera and sun differ.</p>
+  </section>
+
+  <!-- 10 WHY -->
+  <section id="why">
+    <div class="head"><span class="label">Stage 11 · Decisions</span><h2>Why it is built this way</h2></div>
+    <div class="cards">
+      <details class="card"><summary>Why Blender, not our own renderer</summary>
+        <p>Her GPU is a GTX 1060 (Pascal). CUDA 13 dropped Pascal, and wgpu has no hardware ray queries on it,
+          so a homemade GPU path tracer was out. Cycles has OptiX for Pascal, a production denoiser, AgX colour
+          and a physical sky. The cost: users install Blender, and the code that drives it is GPL.</p></details>
+      <details class="card"><summary>Why a Rust launcher</summary>
+        <p>Started from SketchUp's Ruby, <code>blender.exe</code> pops up a console window. The launcher starts it
+          with <code>CREATE_NO_WINDOW</code>, captures its output into <code>blender.txt</code> and kills it when the
+          <code>cancel</code> file appears. It is about 100 lines.</p></details>
+      <details class="card"><summary>Why files instead of pipes or sockets</summary>
+        <p>Every run leaves a complete, replayable job: rerun Blender on it directly to debug, render look variants
+          from a script, or copy it into a test. Crashes on either side leave nothing half-connected.</p></details>
+      <details class="card"><summary>Why one flat mesh</summary>
+        <p>Instancing sounds cheaper, but 30,000 Blender objects cost more in Python object creation and in the BVH
+          than copying 2.4 M triangles in numpy.</p><p class="meas">measured: 19.2 s flat vs 38.7 s instanced</p></details>
+      <details class="card"><summary>Why Blender turns the 2D trees</summary>
+        <p>SketchUp 2024+ reports stale transforms for “always face camera” components. The export sends the raw
+          transform plus a flag, and Blender rotates each card about its blue axis toward the render camera.</p></details>
+      <details class="card"><summary>Why the haze uses a denoised depth pass</summary>
+        <p>The mist pass (distance per pixel) is noisy behind cut-out leaves, because the leaf alpha is sampled
+          randomly. Mixed in raw, it gave white specks in hedges. Running it through the denoiser first fixed that.</p></details>
+      <details class="card"><summary>Why the preview has a Refresh button</summary>
+        <p>SketchUp's <code>write_image</code> redraws the whole model for every picture: about 4 s on her garden at
+          any size, even without smoothing. On big models the preview updates on request instead of freezing
+          SketchUp after every orbit.</p><p class="meas">measured: 4.0–4.5 s for 600 px, 1000 px and viewport size</p></details>
+      <details class="card"><summary>Possible next step: keep Blender running</summary>
+        <p>Every render starts Blender and rebuilds the scene (~10 s here). A Blender that stays open between
+          renders could keep the built scene and only change camera, sun and look, making look tweaks and batches
+          much faster. More moving parts, so not done yet.</p></details>
+    </div>
+  </section>
+
+  <footer>TrichoRendr 0.3.0. Built from the source in <code>plugin/tricho_rendr</code> and measurements on one real
+    garden model, October 2026. Open this file in a browser; the sequence diagram needs internet (mermaid).</footer>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.append(e);
+    return e;
+  };
+  const redrawers = [];
+  const onTheme = () => redrawers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  /* 0: pipeline map */
+  const STAGES = [
+    { name: 'Window', what: 'The TrichoRendr window inside SketchUp: an HtmlDialog (Chromium) page with the settings, the viewport preview and the live render.',
+      who: 'JavaScript in SketchUp’s embedded browser', input: 'Clicks; update(state) calls from Ruby', output: 'sketchup.start / cancel / save_settings calls into Ruby',
+      note: 'The page holds no logic about rendering. Ruby pushes the whole state as JSON every time something changes, React-style but by hand.' },
+    { name: 'Export', what: 'Walks the SketchUp model and writes triangles, UVs, materials and instances into the job folder.',
+      who: 'Ruby on SketchUp’s UI thread, in a Fiber with 0.1 s slices', input: 'The open model, visible tags and objects', output: 'pos.bin, uv.bin, mat.bin, inst.bin, materials list, texture PNGs',
+      note: 'About a minute for her 650k-face garden the first time. Skipped completely when the model is unchanged (export key).' },
+    { name: 'Job folder', what: 'The only interface between the parts: flat binary arrays plus scene.json with camera, sun, look and materials.',
+      who: 'Files in %TEMP%\\TrichoRendr', input: 'Written by Ruby', output: 'Read by Blender; progress and images written back',
+      note: 'Rerunning Blender on the last job folder reproduces any render exactly, which is how look tuning and debugging work.' },
+    { name: 'Launcher', what: 'Starts Blender without a console window, captures its output, stops it on cancel.',
+      who: 'Rust, tricho_rendr.exe (~100 lines)', input: 'job path, blender.exe path, cycles.py path', output: 'blender.txt; exit code',
+      note: 'Polls for a file named cancel every 200 ms, then kills Blender and waits for it.' },
+    { name: 'Blender', what: 'cycles.py rebuilds the scene from the bins: flattens instances, turns face-me trees, creates materials, camera, sun, sky and the image look.',
+      who: 'Python 3.13 inside Blender 5.1 (background mode), numpy', input: 'Job folder', output: 'A Blender scene in memory, then render calls',
+      note: 'Started fresh for every render, so nothing survives between renders; the rebuild costs ~10 s on her garden.' },
+    { name: 'Cycles', what: 'Blender’s path tracer: builds the BVH, traces samples on the GPU, denoises, runs the compositor and writes PNGs.',
+      who: 'C++ on the GPU: OptiX, else CUDA or HIP, else the CPU (GTX 1060: OptiX)', input: 'The built scene', output: 'pass_1.png (4 samples), render.png (final)',
+      note: '“Preparing scene” (BVH + textures to the GPU) takes ~5 s here; then time grows with pixels × samples.' },
+  ];
+  const nodes = [...document.querySelectorAll('.node')];
+  const showStage = i => {
+    nodes.forEach((n, j) => n.setAttribute('aria-pressed', String(i === j)));
+    const s = STAGES[i];
+    $('map-detail').innerHTML = `<div class="col"><h3>${s.name}</h3><p>${s.what}</p><p class="muted">${s.note}</p></div>
+      <dl class="kv"><dt>Runs as</dt><dd>${s.who}</dd><dt>Input</dt><dd>${s.input}</dd><dt>Output</dt><dd>${s.output}</dd></dl>`;
+  };
+  nodes.forEach((n, i) => n.addEventListener('click', () => showStage(i)));
+  showStage(1);
+
+  /* 1a: triangulation */
+  let polygon = [[30, 30], [200, 30], [200, 80], [290, 80], [290, 170], [130, 170], [130, 120], [30, 120]];
+  let showTris = false;
+  const signed = p => p.reduce((s, a, i) => { const b = p[(i + 1) % p.length]; return s + a[0] * b[1] - b[0] * a[1]; }, 0);
+  const cross = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const inTri = (p, a, b, c) => { const d1 = cross(p, a, b), d2 = cross(p, b, c), d3 = cross(p, c, a);
+    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0)); };
+  function triangulate(pts) { // ear clipping, the textbook way to cut a simple polygon into n-2 triangles
+    const p = signed(pts) < 0 ? [...pts].reverse() : [...pts];
+    const idx = p.map((_, i) => i), tris = [];
+    let guard = 0;
+    while (idx.length > 3 && guard++ < 1000) {
+      for (let i = 0; i < idx.length; i++) {
+        const a = p[idx[(i + idx.length - 1) % idx.length]], b = p[idx[i]], c = p[idx[(i + 1) % idx.length]];
+        if (cross(a, b, c) <= 0) continue;
+        if (idx.some(j => { const q = p[j]; return q !== a && q !== b && q !== c && inTri(q, a, b, c); })) continue;
+        tris.push([a, b, c]); idx.splice(i, 1); break;
+      }
+    }
+    tris.push(idx.map(i => p[i]));
+    return tris;
+  }
+  function drawTri() {
+    const svg = $('tri-svg'); svg.replaceChildren();
+    const pts = polygon.map(q => q.join(',')).join(' ');
+    el('polygon', { points: pts, fill: css('--moss-soft'), stroke: css('--moss'), 'stroke-width': 2 }, svg);
+    const tris = triangulate(polygon);
+    if (showTris) tris.forEach(t => el('polygon', { points: t.map(q => q.join(',')).join(' '), fill: 'none', stroke: css('--sky'), 'stroke-width': 1, 'stroke-dasharray': '3 2' }, svg));
+    polygon.forEach(q => el('circle', { cx: q[0], cy: q[1], r: 3.2, fill: css('--ink') }, svg));
+    $('tri-read').innerHTML = `1 face · <b>${polygon.length}</b> corners → <b>${showTris ? tris.length : '?'}</b> triangles`;
+    $('tri-toggle').textContent = showTris ? 'Hide triangles' : 'Show triangles';
+  }
+  $('tri-toggle').onclick = () => { showTris = !showTris; drawTri(); };
+  $('tri-new').onclick = () => {
+    const n = 6 + Math.floor(Math.random() * 8), cx = 160, cy = 100;
+    polygon = Array.from({ length: n }, (_, i) => {
+      const a = (i / n) * Math.PI * 2, r = 45 + Math.random() * 45;
+      return [Math.round(cx + Math.cos(a) * r * 1.5), Math.round(cy + Math.sin(a) * r)];
+    });
+    drawTri();
+  };
+  redrawers.push(drawTri); drawTri();
+
+  /* 1b: instances */
+  function drawInst() {
+    const svg = $('inst-svg'); svg.replaceChildren();
+    const n = +$('inst-n').value, TRIS = 1200;
+    const rnd = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
+    el('rect', { x: 8, y: 30, width: 70, height: 92, fill: 'none', stroke: css('--line'), 'stroke-dasharray': '4 3' }, svg);
+    const txt = (x, y, s, fill, size) => { const t = el('text', { x, y, fill, 'font-size': size || 10, 'font-family': 'IBM Plex Mono, monospace' }, svg); t.textContent = s; };
+    txt(14, 24, 'definition', css('--muted'));
+    const tree = (x, y, s, fill) => { el('rect', { x: x - 1.5 * s, y: y, width: 3 * s, height: 10 * s, fill: css('--sun') }, svg);
+      el('circle', { cx: x, cy: y - 2 * s, r: 9 * s, fill }, svg); };
+    tree(43, 80, 2.2, css('--moss'));
+    txt(96, 24, `${n} instance${n > 1 ? 's' : ''} (transform each)`, css('--muted'));
+    for (let i = 0; i < n; i++) {
+      const x = 100 + rnd(i, 1) * 205, y = 60 + rnd(i, 2) * 70, s = .55 + rnd(i, 3) * .7;
+      el('line', { x1: 78, y1: 76, x2: x, y2: y, stroke: css('--line'), 'stroke-width': .6 }, svg);
+      tree(x, y, s, css('--moss'));
+    }
+    const fmt = v => v >= 1e6 ? (v / 1e6).toFixed(1) + ' MB' : (v / 1e3).toFixed(1) + ' KB';
+    $('inst-read').innerHTML = `export: <b>${fmt(TRIS * 128 + n * 140)}</b> (mesh once + ${n} × 140 B) · Blender: <b>${(TRIS * n).toLocaleString('en')}</b> triangles`;
+  }
+  $('inst-n').oninput = drawInst; redrawers.push(drawInst); drawInst();
+
+  /* 1c: winding */
+  function drawWind() {
+    const svg = $('wind-svg'); svg.replaceChildren();
+    const m = $('wind-mirror').checked;
+    const base = [[0, -55], [-55, 40], [55, 40]];
+    const P = base.map(([x, y]) => [160 + (m ? -x : x), 92 + y]);
+    // vertex 2 sits left originally; mirroring puts it right, so the order turns from CCW to CW on screen
+    el('polygon', { points: P.map(q => q.join(',')).join(' '), fill: m ? css('--sun-soft') : css('--moss-soft'), stroke: m ? css('--sun') : css('--moss'), 'stroke-width': 2 }, svg);
+    const mk = el('defs', {}, svg);
+    const mkr = el('marker', { id: 'ah', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' }, mk);
+    el('path', { d: 'M0,0 L10,5 L0,10 z', fill: css('--ink') }, mkr);
+    const sweep = m ? 1 : 0;
+    el('path', { d: `M ${160 - 18} ${86} A 20 20 0 1 ${sweep} ${160 + 18} ${86}`, fill: 'none', stroke: css('--ink'), 'stroke-width': 1.5, 'marker-end': 'url(#ah)' }, svg);
+    P.forEach((q, i) => {
+      el('circle', { cx: q[0], cy: q[1], r: 11, fill: css('--panel'), stroke: css('--ink') }, svg);
+      const t = el('text', { x: q[0], y: q[1] + 4, 'text-anchor': 'middle', 'font-size': 12, fill: css('--ink'), 'font-family': 'IBM Plex Mono, monospace' }, svg);
+      t.textContent = i + 1;
+    });
+    $('wind-read').innerHTML = m ? 'order 1→2→3 is now <b>clockwise</b>: the front faces away, so front and back swap'
+      : 'order 1→2→3 is <b>counter-clockwise</b>: you see the front';
+  }
+  $('wind-mirror').onchange = drawWind; redrawers.push(drawWind); drawWind();
+
+  /* 4: build timings (measured, seconds) */
+  const T = [
+    ['Start Blender, read bins', 2.3, '--muted'], ['Flatten 30k instances', 1.3, '--moss'], ['Pair materials', 0.2, '--moss'],
+    ['Build the mesh', 4.0, '--moss'], ['Create 338 materials', 2.1, '--moss'], ['Cycles: BVH + textures', 5.0, '--sky'], ['Trace 16 samples', 4.0, '--sun'],
+  ];
+  function drawBars() {
+    const max = Math.max(...T.map(t => t[1]));
+    $('bars').innerHTML = T.map(([n, v, c]) => `<div class="bar"><span>${n}</span><span class="track"><span class="fill" style="width:${v / max * 100}%;background:${css(c)}"></span></span><span class="v">≈${v.toFixed(1)} s</span></div>`).join('');
+    $('bars-total').innerHTML = `whole run ≈ <b>19 s</b> (measured 19.2 s). Before the fixes: 28.1 s; with Cycles instancing: 38.7 s.`;
+  }
+  redrawers.push(drawBars); drawBars();
+
+  /* 5: material classifier, same rules as cycles.py */
+  const WORDS = {
+    water: ['water', 'voda', 'vodn', 'вода', 'pool', 'bazén', 'jezír', 'pond', 'lake', 'river', 'potok'],
+    glass: ['glass', 'glas', 'sklo', 'sklen', 'skleněný', 'okno', 'steklo', 'стекло', 'vidro'],
+    glow: ['glow', 'emit', 'svit', 'lamp', 'lampa', 'osvětlení', 'oheň'],
+  };
+  const plain = s => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+  const hit = (kind, name) => WORDS[kind].map(plain).find(w => name.includes(w));
+  function classify() {
+    const name = plain($('m-name').value), alpha = +$('m-alpha').value / 100, tex = $('m-tex').checked, png = $('m-png').checked && tex;
+    $('m-alpha-v').textContent = `${Math.round(alpha * 100)} %`;
+    $('m-png').disabled = !tex;
+    const w = hit('water', name), g = hit('glass', name), l = hit('glow', name);
+    const steps = [], step = (t, on, off) => steps.push(`<span class="step ${on ? 'hit' : off ? 'no' : ''}">${t}</span>`);
+    let result, expl;
+    step(`name → “${name || '…'}”`, true);
+    step(w ? `water word “${w}”` : 'no water word', !!w, !w);
+    if (w) { result = 'Water'; expl = 'Water wins before anything else, even when the material has a texture.'; }
+    else {
+      const glass = alpha < 1 && (!tex || g);
+      step(alpha < 1 ? `see-through (${Math.round(alpha * 100)} %)` : 'opaque', alpha < 1, alpha >= 1);
+      if (alpha < 1 && tex) step(g ? `glass word “${g}”` : 'textured, no glass word', !!g, !g);
+      if (glass) { result = 'Glass'; expl = tex ? 'A textured see-through material with a glass word becomes glass.' : 'Any see-through colour without a texture is glass.'; }
+      else {
+        result = tex ? (png ? 'Cut-out (leaves)' : 'Textured surface') : 'Plain colour';
+        expl = png ? 'The PNG alpha cuts the shape; part of the sunlight passes through (Sun through leaves).'
+          : alpha < 1 ? 'See-through texture without a glass word: the texture simply becomes partly transparent.' : 'A normal surface: Principled BSDF with roughness 0.7.';
+        step(l ? `glow word “${l}”` : 'no glow word', !!l, !l);
+        if (l) { result += ' + glowing'; expl += ' It also emits light (Lamps slider).'; }
+      }
+    }
+    $('m-path').innerHTML = steps.join('<span class="muted">→</span>');
+    $('m-result').textContent = result;
+    $('m-expl').textContent = expl;
+  }
+  ['m-name', 'm-alpha'].forEach(id => $(id).addEventListener('input', classify));
+  ['m-tex', 'm-png'].forEach(id => $(id).addEventListener('change', classify));
+  classify();
+
+  /* 6: progressive path tracing, top-down view of a block on grass */
+  const cv = $('pt'), ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const SAMPLES = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
+  const BOX = { x0: 3.6, x1: 5.0, y0: 1.7, y1: 3.5, h: 1.6 }, SCALE = 10 / W;
+  const sunDir = (() => { const v = [-0.62, -0.38, 0.69]; const l = Math.hypot(...v); return v.map(c => c / l); })();
+  const basis = (() => { const a = Math.abs(sunDir[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+    const u = [a[1] * sunDir[2] - a[2] * sunDir[1], a[2] * sunDir[0] - a[0] * sunDir[2], a[0] * sunDir[1] - a[1] * sunDir[0]];
+    const lu = Math.hypot(...u); u.forEach((c, i) => u[i] = c / lu);
+    const v = [sunDir[1] * u[2] - sunDir[2] * u[1], sunDir[2] * u[0] - sunDir[0] * u[2], sunDir[0] * u[1] - sunDir[1] * u[0]];
+    return [u, v]; })();
+  const hitsBox = (ox, oy, d) => { // slab test from a ground point
+    let t0 = 0, t1 = 1e9;
+    const o = [ox, oy, 0.001], lo = [BOX.x0, BOX.y0, 0], hi = [BOX.x1, BOX.y1, BOX.h];
+    for (let k = 0; k < 3; k++) {
+      if (Math.abs(d[k]) < 1e-9) { if (o[k] < lo[k] || o[k] > hi[k]) return false; continue; }
+      let a = (lo[k] - o[k]) / d[k], b = (hi[k] - o[k]) / d[k];
+      if (a > b) [a, b] = [b, a];
+      t0 = Math.max(t0, a); t1 = Math.min(t1, b);
+      if (t0 > t1) return false;
+    }
+    return true;
+  };
+  let accum = new Float32Array(W * H), done = 0, target = 8, angle = 0.5, raf = 0, t0 = 0;
+  const surface = (x, y) => (x >= BOX.x0 && x <= BOX.x1 && y >= BOX.y0 && y <= BOX.y1) ? 1 : 0;
+  function sample(px, py) {
+    const x = (px + Math.random()) * SCALE, y = (py + Math.random()) * SCALE;
+    if (surface(x, y)) return 0.62 * sunDir[2] / 0.69 + 0.3; // block top: sees sun and sky fully
+    const r = Math.tan(angle * Math.PI / 180) * Math.sqrt(Math.random()), th = Math.random() * 2 * Math.PI;
+    const d = sunDir.map((c, i) => c + basis[0][i] * r * Math.cos(th) + basis[1][i] * r * Math.sin(th));
+    const sun = hitsBox(x, y, d) ? 0 : 1;
+    const u1 = Math.random(), u2 = Math.random(), rr = Math.sqrt(u1), ph = 2 * Math.PI * u2; // cosine-weighted sky
+    const sky = hitsBox(x, y, [rr * Math.cos(ph), rr * Math.sin(ph), Math.sqrt(1 - u1)]) ? 0 : 1;
+    return 0.62 * sun * sunDir[2] / 0.69 + 0.3 * sky;
+  }
+  const hex = s => { const m = s.replace('#', ''); return [0, 2, 4].map(i => parseInt(m.slice(i, i + 2), 16)); };
+  function paint() {
+    const img = ctx.createImageData(W, H), grass = hex(css('--moss')), block = hex(css('--muted'));
+    const dn = $('pt-dn').checked, R = 3;
+    for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+      const i = py * W + px, s = surface((px + .5) * SCALE, (py + .5) * SCALE);
+      let v = accum[i] / Math.max(done, 1);
+      if (dn) { // average neighbours on the same surface only: edges survive, noise goes
+        let sum = 0, n = 0;
+        for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+          const qx = px + dx, qy = py + dy;
+          if (qx < 0 || qy < 0 || qx >= W || qy >= H || surface((qx + .5) * SCALE, (qy + .5) * SCALE) !== s) continue;
+          sum += accum[qy * W + qx]; n++;
+        }
+        v = sum / n / Math.max(done, 1);
+      }
+      const c = s ? block : grass, k = Math.min(1.25, v * 1.15);
+      img.data.set([c[0] * k, c[1] * k, c[2] * k, 255], i * 4);
+    }
+    ctx.putImageData(img, 0, 0);
+    const rays = done * W * H * 2;
+    $('pt-read').innerHTML = `sample <b>${done}</b> / ${target} per pixel · <b>${rays.toLocaleString('en')}</b> rays · noise ∝ 1/√samples`;
+  }
+  function step() {
+    const batch = Math.min(target - done, done < 8 ? 1 : 4), start = performance.now();
+    for (let k = 0; k < batch; k++) { for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) accum[py * W + px] += sample(px, py); done++; }
+    paint();
+    if (done < target) raf = requestAnimationFrame(step);
+  }
+  function restart() {
+    cancelAnimationFrame(raf);
+    target = SAMPLES[+$('pt-s').value];
+    angle = 0.5 + 0.2 * +$('pt-soft').value;
+    $('pt-s-v').textContent = target;
+    $('pt-soft-v').textContent = `${angle.toFixed(1)}°`;
+    accum = new Float32Array(W * H); done = 0;
+    raf = requestAnimationFrame(step);
+  }
+  $('pt-s').oninput = restart; $('pt-soft').oninput = restart; $('pt-dn').onchange = paint;
+  redrawers.push(paint);
+  restart();
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  if (window.mermaid) mermaid.initialize({ startOnLoad: true,
+    theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'neutral' });
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Python: plugin/tricho_rendr/blender/cycles.py runs inside Blender (bpy, mathutils, numpy are Blender's).
+target-version = "py311" # Blender 4.x/5.x bundle Python 3.11+
+line-length = 120
+
+[lint]
+# Real bugs only (undefined names, unused imports, syntax); the code style is deliberately compact.
+select = ["F", "E9", "B"]
+
+[format]
+quote-style = "preserve"

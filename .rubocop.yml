@@ -1,0 +1,14 @@
+# Ruby runs inside SketchUp (Ruby 3.2, SketchUp API). Only the Lint department: real mistakes, not style.
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  DisabledByDefault: true
+  SuggestExtensions: false
+
+Lint:
+  Enabled: true
+
+# Deliberate: UI callbacks and timers swallow errors silently in SketchUp, so TrichoRendr.guard and the
+# exporter catch everything, log it and show it in the window.
+Lint/RescueException:
+  Enabled: false
