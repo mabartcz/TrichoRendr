@@ -54,7 +54,7 @@ module TrichoRendr
     view = Sketchup.active_model.active_view
     @snapshot_key = view_key
     FileUtils.mkdir_p(VIEW_DIR)
-    old = Dir.glob(File.join(VIEW_DIR, 'view_*')).sort
+    old = Dir.glob(File.join(VIEW_DIR, 'view_*'))
     old[0...-2].each { |f| File.delete(f) rescue nil } # keep the last two: the window may still be loading one
     path = File.join(VIEW_DIR, "view_#{(now * 1000).to_i}.jpg")
     # The preview has the render's shape: a fixed size like 3000x1300 shows the frame that gets rendered.

@@ -37,7 +37,7 @@ module TrichoRendr
     # on_progress.(text, percent or nil, seconds left or nil); on_done.(stats)
     def start(on_progress, &on_done)
       FileUtils.mkdir_p(TEX_CACHE)
-      cutoff = Time.now - 14 * 86_400
+      cutoff = Time.now - (14 * 86_400)
       Dir.glob(File.join(TEX_CACHE, '*.png')).each { |f| File.delete(f) if File.mtime(f) < cutoff rescue nil }
       @on_progress = on_progress
       @on_done = on_done

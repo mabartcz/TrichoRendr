@@ -65,7 +65,7 @@ module TrichoRendr
     push(busy: true, error: nil, pct: nil, eta: nil, render: nil, status: 'Starting…')
     FileUtils.mkdir_p(JOB)
     old = Dir.glob(File.join(JOB, '*.{png,txt}')) + %w[scene.json cancel].map { |f| File.join(JOB, f) }
-    old.each { |f| File.delete(f) if File.exist?(f) } # bins + export.json stay for reuse
+    old.each { |f| FileUtils.rm_f(f) } # bins + export.json stay for reuse
 
     vis = visibility(model)
     key = export_key(model, vis)
@@ -88,7 +88,7 @@ module TrichoRendr
     return go.call(@stats) if @reused # nothing changed: skip the export
 
     @export_key = nil # the bins get overwritten; only a finished export is reusable
-    File.delete(EXPORT_JSON) if File.exist?(EXPORT_JSON)
+    FileUtils.rm_f(EXPORT_JSON)
     saved = saved_key(model, vis) # taken before the export: edits made meanwhile make it stale
     @exporter = Exporter.new(model, JOB)
     @exporter.start(->(text, pct, eta) { push(status: "Step 1/#{@steps} · #{text}", pct: pct, eta: eta) }) do |stats|

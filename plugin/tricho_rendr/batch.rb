@@ -78,7 +78,7 @@ module TrichoRendr
       file = unique_path(b[:folder], safe_name(item[:name]))
       FileUtils.cp(File.join(JOB, 'render.png'), file)
       item.merge!(status: 'done', pct: 100, file: "file:///#{file}")
-      b[:times] << now - item[:t0]
+      b[:times] << (now - item[:t0])
       log("batch: saved #{file}")
     else
       item[:status] = result.to_s # cancelled / failed
@@ -134,7 +134,7 @@ module TrichoRendr
       left = n - b[:i] - 1
       avg = b[:times].empty? ? nil : b[:times].sum / b[:times].size
       avg ||= (now - item[:t0]) + changes[:eta] if changes[:eta] # first scene: its own estimate
-      out[:eta] = changes[:eta] && avg ? changes[:eta] + left * avg : nil
+      out[:eta] = changes[:eta] && avg ? changes[:eta] + (left * avg) : nil
     end
     out
   end

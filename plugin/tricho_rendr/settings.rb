@@ -121,7 +121,7 @@ module TrichoRendr
       u['seconds'] = u['seconds'].to_f + seconds
       u['longest'] = [u['longest'].to_f, seconds].max
       u['pixels'] = u['pixels'].to_i + px
-      u['paths'] = u['paths'].to_i + px * job[:samples]
+      u['paths'] = u['paths'].to_i + (px * job[:samples])
       u['triangles'] = u['triangles'].to_i + job[:triangles]
       u['biggest'] = [u['biggest'].to_i, job[:triangles]].max
       u['faceme'] = u['faceme'].to_i + job[:faceme]

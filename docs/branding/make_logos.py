@@ -41,7 +41,7 @@ def pebbles():
 def tiles():
     random.seed(7)
     cells, px = [], 4
-    for row, (y, h, w) in enumerate(case_rows(n=11, top=12, bottom=56)):
+    for row, (y, _h, w) in enumerate(case_rows(n=11, top=12, bottom=56)):
         k = row / 10  # 0 at the mouth, 1 at the tip
         cols = max(2, round(w / px))
         x0 = 32 - cols * px / 2

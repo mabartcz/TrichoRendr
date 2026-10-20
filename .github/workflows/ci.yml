@@ -44,7 +44,7 @@ jobs:
           ruby-version: "3.2" # SketchUp 2024-2026 embed Ruby 3.2
       - name: Syntax
         run: for f in $(git ls-files 'plugin/*.rb'); do ruby -wc "$f" || exit 1; done
-      - run: gem install rubocop --no-document
+      - run: gem install rubocop -v 1.92.0 --no-document
       - run: rubocop plugin
 
   python:
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install ruff
+      - run: pip install ruff==0.17.1
       - run: ruff check .
       - run: python -m py_compile plugin/tricho_rendr/blender/cycles.py tools/look_variants.py tests/fixtures/make_job.py
       - name: Fixture job generates
