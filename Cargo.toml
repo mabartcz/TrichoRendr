@@ -5,7 +5,7 @@ members = ["launcher", "xtask"]
 [workspace.package]
 version = "0.3.1"
 edition = "2024"
-license = "UNLICENSED"
+license = "GPL-3.0-or-later"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

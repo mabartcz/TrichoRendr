@@ -190,6 +190,9 @@ fn package() -> Result {
         zip.start_file(name, opts)?;
         zip.write_all(&fs::read(&f)?)?;
     }
+    // The GPL wants its text shipped with every copy.
+    zip.start_file("tricho_rendr/LICENSE", opts)?;
+    zip.write_all(&fs::read(root().join("LICENSE"))?)?;
     zip.finish()?;
     eprintln!("packaged {}", path.display());
     Ok(())

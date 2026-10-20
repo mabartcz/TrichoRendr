@@ -76,8 +76,8 @@ plugin barely changes: it already talks to a separate exe through the job folder
   as part of Blender, so when distributed they must be GPL. That covers `blender/cycles.py`.
 - **The Ruby plugin and the Rust launcher** only start Blender as a separate program and exchange files,
   normally treated as separate programs (could have another license), but that line is grey. Simplest
-  clean choice while we use Blender: the whole project under **GPL-3.0**. (Today: no LICENSE file yet,
-  Cargo says `UNLICENSED`.)
+  clean choice while we use Blender: the whole project under **GPL-3.0-or-later** (done: `LICENSE`,
+  Cargo `license`).
 - **Selling GPL software is allowed** (many Blender add-ons are sold this way). Buyers get the source and
   may pass it on, so people pay for the ready package, updates and support. Open source and sold = the GPL
   model.

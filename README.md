@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/Blender_Cycles-5.0%2B-E87D0D?logo=blender&logoColor=white" alt="Blender 5.0+">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4" alt="Windows 10 | 11">
   <br>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-e6c07b" alt="License: GPL-3.0-or-later"></a>
   <img src="https://img.shields.io/badge/Ruby-3.2-CC342D?logo=ruby&logoColor=white" alt="Ruby">
   <img src="https://img.shields.io/badge/Rust-launcher-000000?logo=rust&logoColor=white" alt="Rust">
   <img src="https://img.shields.io/badge/Python-Blender_script-3776AB?logo=python&logoColor=white" alt="Python">
@@ -89,5 +90,5 @@ cargo xtask smoke      # renders a generated test scene with Blender (end-to-end
 Layout, the job folder format and how the parts talk: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the
 interactive walkthrough [docs/architecture.html](docs/architecture.html) (open it in a browser).
 Background research: [docs/RESEARCH.md](docs/RESEARCH.md). Blender vs. standalone Cycles, bundling
-and licensing: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). Tuning the look against a real model:
+and licensing: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). License: [GPL-3.0-or-later](LICENSE). Tuning the look against a real model:
 `python tools/look_variants.py`.
