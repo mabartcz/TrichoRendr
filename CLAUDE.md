@@ -19,7 +19,7 @@ install Blender themselves for now).
 - `launcher/`: Rust crate `tricho_rendr` = `tricho_rendr.exe <job> <blender.exe> <cycles.py>`; hides
   Blender's console, polls `<job>/cancel`.
 - `xtask/`: all project tasks. `tests/fixtures/make_job.py`: generated test job. `tools/look_variants.py`:
-  look tuning against the last real job. `docs/`: architecture, research, branding concepts, images.
+  look tuning against the last real job. `docs/`: architecture, research, distribution, README images.
 
 ## Commands
 

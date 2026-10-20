@@ -18,6 +18,8 @@
   <a href="https://github.com/mabartcz/TrichoRendr/commits/main"><img src="https://img.shields.io/github/last-commit/mabartcz/TrichoRendr?color=a9b1b5" alt="last commit"></a>
 </p>
 
+<p align="center"><img src="docs/images/window.png" alt="The TrichoRendr window in SketchUp"></p>
+
 Nice, simple renders of SketchUp models: sun and sky, water, glass, shadows, textures and 2D face-me trees.
 Not photo-real on purpose: the look of a landscape architecture visualisation, in a few clicks. It replaces
 Twilight Render, which no longer works in current SketchUp.
