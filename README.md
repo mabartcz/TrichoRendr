@@ -1,4 +1,21 @@
-# TrichoRendr
+<p align="center">
+  <img src="plugin/tricho_rendr/images/icon.svg" width="128" alt="TrichoRendr logo">
+</p>
+
+<h1 align="center">TrichoRendr</h1>
+
+<p align="center">
+  <a href="https://github.com/mabartcz/TrichoRendr/actions/workflows/ci.yml"><img src="https://github.com/mabartcz/TrichoRendr/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <img src="https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/mabartcz/TrichoRendr/main/Cargo.toml&query=%24.workspace.package.version&label=version&color=4fb8cc" alt="version">
+  <img src="https://img.shields.io/badge/SketchUp-2024%2B-005F9E?logo=sketchup&logoColor=white" alt="SketchUp 2024+">
+  <img src="https://img.shields.io/badge/Blender_Cycles-5.0%2B-E87D0D?logo=blender&logoColor=white" alt="Blender 5.0+">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4" alt="Windows 10 | 11">
+  <br>
+  <img src="https://img.shields.io/badge/Ruby-3.2-CC342D?logo=ruby&logoColor=white" alt="Ruby">
+  <img src="https://img.shields.io/badge/Rust-launcher-000000?logo=rust&logoColor=white" alt="Rust">
+  <img src="https://img.shields.io/badge/Python-Blender_script-3776AB?logo=python&logoColor=white" alt="Python">
+  <a href="https://github.com/mabartcz/TrichoRendr/commits/main"><img src="https://img.shields.io/github/last-commit/mabartcz/TrichoRendr?color=a9b1b5" alt="last commit"></a>
+</p>
 
 Nice, simple renders of SketchUp models: sun and sky, water, glass, shadows, textures and 2D face-me trees.
 Not photo-real on purpose: the look of a landscape architecture visualisation, in a few clicks. It replaces
