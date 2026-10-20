@@ -66,3 +66,5 @@ After changing plugin files: `cargo xtask install`, then the user restarts Sketc
 - A new look setting goes in three places (see ARCHITECTURE.md › Look settings).
 - User-facing text is plain English for a non-programmer; the window must never show a console or freeze.
 - Bump the version in both `Cargo.toml` (workspace) and `plugin/tricho_rendr.rb`, and add a CHANGELOG entry.
+- Release: after that commit, `git tag v<version>` + `git push --tags`; `.github/workflows/release.yml` builds the
+  `.rbz` and publishes it with that version's `## <version>` CHANGELOG section as notes.

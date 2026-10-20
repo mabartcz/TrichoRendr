@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/mabartcz/TrichoRendr/actions/workflows/ci.yml"><img src="https://github.com/mabartcz/TrichoRendr/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
-  <img src="https://img.shields.io/badge/dynamic/toml?url=https://raw.githubusercontent.com/mabartcz/TrichoRendr/main/Cargo.toml&query=%24.workspace.package.version&label=version&color=4fb8cc" alt="version">
+  <a href="https://github.com/mabartcz/TrichoRendr/releases/latest"><img src="https://img.shields.io/github/v/release/mabartcz/TrichoRendr?label=download&color=4fb8cc" alt="latest release"></a>
   <img src="https://img.shields.io/badge/SketchUp-2024%2B-005F9E?logo=sketchup&logoColor=white" alt="SketchUp 2024+">
   <img src="https://img.shields.io/badge/Blender_Cycles-5.0%2B-E87D0D?logo=blender&logoColor=white" alt="Blender 5.0+">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4" alt="Windows 10 | 11">
@@ -37,7 +37,7 @@ on the GPU, started in the background; you never see Blender.
 
 ## Install
 
-Download `tricho_rendr-<version>.rbz` (CI artifact or `cargo xtask package`), then in SketchUp:
+Download `tricho_rendr-<version>.rbz` from the [latest release](https://github.com/mabartcz/TrichoRendr/releases/latest), then in SketchUp:
 **Extensions → Extension Manager → Install Extension** and pick the file. Restart SketchUp.
 
 ## Use

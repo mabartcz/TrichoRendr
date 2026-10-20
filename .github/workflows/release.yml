@@ -1,0 +1,29 @@
+name: Release
+
+# Push a tag `v<version>` (same as Cargo.toml and tricho_rendr.rb) to publish the .rbz as a GitHub release,
+# with that version's CHANGELOG section as the notes.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest # the launcher is a Windows GUI exe
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo xtask package # fails if tricho_rendr.rb and Cargo.toml versions differ
+      - name: Tag matches version
+        run: test -f "dist/tricho_rendr-${GITHUB_REF_NAME#v}.rbz"
+      - name: Notes from CHANGELOG
+        run: awk -v h="## ${GITHUB_REF_NAME#v}" '$0 == h {f = 1; next} /^## / {f = 0} f' CHANGELOG.md > notes.md
+      - run: gh release create "$GITHUB_REF_NAME" dist/*.rbz --title "TrichoRendr ${GITHUB_REF_NAME#v}" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
