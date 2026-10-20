@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "tricho_rendr"
-version = "0.3.1"
+version = "0.4.0"
 
 [[package]]
 name = "unicode-ident"
@@ -156,7 +156,7 @@ checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
 
 [[package]]
 name = "xtask"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "zip",
 ]

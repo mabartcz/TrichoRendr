@@ -40,6 +40,7 @@ const LOOK_UI = [
   ['flare', 'Lens flare (sun in the picture)', 0, 100, 5, ' %'],
   ['background', 'Background', 'seg', [['sky', 'Sky'], ['white', 'White'], ['transparent', 'Transparent']]],
   ['Materials'],
+  ['clay', 'White model (clay)', 'check', 'Everything white except water, glass, glowing materials and the outline of PNG trees: shows form, light and shadow.'],
   ['water_tint', 'Water color', 0, 100, 5, ' %'],
   ['waves', 'Water ripples', 0, 200, 5, ' %'],
   ['glass', 'Glass reflections', 0, 200, 5, ' %'],
@@ -54,7 +55,7 @@ const MOOD = LOOK_UI.filter(([, label]) => label).map(([key]) => key);
 // The tuned everyday look; the other built-in presets change only a few keys of it. (The sliders' defaults are
 // neutral: 100 %, 0 EV.)
 const BASIC = { shadows: true, time: 'day', sun: 105, softness: 10, sky: 115, haze: 0, style: 'natural', exposure: 0.8,
-                saturation: 100, warmth: 90, glow: 0, flare: 0, background: 'sky', water_tint: 50, waves: 50, glass: 100,
+                saturation: 100, warmth: 90, glow: 0, flare: 0, background: 'sky', clay: false, water_tint: 50, waves: 50, glass: 100,
                 leaves: 20, lamps: 100 };
 const PRESETS = {
   basic: ['Basic · balanced everyday light', {}],
@@ -63,6 +64,7 @@ const PRESETS = {
   sunset: ['Warm sunset · low sun, glow', { time: 'sunset', style: 'soft', haze: 40, glow: 20, flare: 30, warmth: 100, exposure: 1.4 }],
   evening: ['Blue hour · dusk sky, lamps on', { time: 'evening', lamps: 300, glow: 30, haze: 25, saturation: 90, exposure: 1.4 }],
   plan: ['Soft plan · gentle shadows, calm colors', { style: 'soft', softness: 60, saturation: 85, exposure: 1.6 }],
+  clay: ['White model · clay, soft shadows', { clay: true, style: 'soft', softness: 40, sky: 130, warmth: 70 }],
 };
 let mine = []; // [{name, look}]
 

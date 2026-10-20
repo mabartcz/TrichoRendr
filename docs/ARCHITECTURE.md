@@ -112,3 +112,5 @@ such as `[Translucent_Glass_Sky_Reflection]`). The lists are edited on the windo
   untextured material with opacity < 100 % is glass anyway; the words make textured ones glass too.
 - Glowing (`glow`, `emit`, `svit`, `lamp`, `lampa`, `osvětlení`, `oheň`).
 - Textured PNGs with alpha are cut out (plants); `Sun through leaves` adds translucency to them.
+- Look `clay` (White model): every other material gets a plain light grey and no texture color; PNG
+  cut-outs keep their alpha, so trees keep their outline.

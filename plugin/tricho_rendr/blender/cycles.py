@@ -158,6 +158,9 @@ def shader(nt, mid, uvmap):
         L.new(b.outputs[0], add.inputs[1])
         return add.outputs[0]
 
+    clay = LOOK.get('clay') and not named('glow', name)  # white model: form, light and shadow only
+    if clay:
+        col = [0.7, 0.7, 0.7, 1.0]
     b.inputs['Base Color'].default_value = col
     if m['texture']:
         path = os.path.join(job, m['texture'])
@@ -166,7 +169,8 @@ def shader(nt, mid, uvmap):
         tex, uvn = N.new('ShaderNodeTexImage'), N.new('ShaderNodeUVMap')
         tex.image, uvn.uv_map = images[path], uvmap
         L.new(uvn.outputs['UV'], tex.inputs['Vector'])
-        L.new(tex.outputs['Color'], b.inputs['Base Color'])
+        if not clay:  # clay keeps only the texture's alpha: PNG trees stay tree-shaped
+            L.new(tex.outputs['Color'], b.inputs['Base Color'])
         mul = N.new('ShaderNodeMath')
         mul.operation, mul.inputs[1].default_value = 'MULTIPLY', m['alpha']
         L.new(tex.outputs['Alpha'], mul.inputs[0])
@@ -185,7 +189,10 @@ def shader(nt, mid, uvmap):
         # Principled alpha to a Transparent mix, so the translucent part keeps the leaf shape.
         tl, mx, cut, tr = (N.new(t) for t in ('ShaderNodeBsdfTranslucent', 'ShaderNodeMixShader',
                                                'ShaderNodeMixShader', 'ShaderNodeBsdfTransparent'))
-        L.new(tex.outputs['Color'], tl.inputs['Color'])
+        if clay:
+            tl.inputs['Color'].default_value = col
+        else:
+            L.new(tex.outputs['Color'], tl.inputs['Color'])
         L.new(mul.outputs[0], cut.inputs['Fac'])
         L.remove(b.inputs['Alpha'].links[0])
         mx.inputs['Fac'].default_value = 0.6 * leaves

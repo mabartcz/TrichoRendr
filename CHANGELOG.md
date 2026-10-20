@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- Look: **White model (clay)**: everything white except water, glass, glowing materials and the outline of
+  PNG trees, to show form, light and shadow. Also as the preset White model · clay, soft shadows.
+- Released on GitHub (Releases page, `.rbz` download); licensed GPL-3.0-or-later.
+
 ## 0.3.1
 
 - Graphics card fails to render (e.g. a driver too old for this Blender: "Invalid kernel image"): renders on the

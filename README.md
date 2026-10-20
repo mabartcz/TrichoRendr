@@ -46,10 +46,10 @@ Click the **TrichoRendr** toolbar button (or **Extensions → TrichoRendr**). Th
 
 - **Output tab:** render the current view or a batch of **Scenes**, the output folder, size (default
   3000 × 1300) and quality (samples). The Viewport tab shows exactly the frame that gets rendered.
-- **Look tab:** presets (Airy day, Warm sunset, Blue hour, Soft plan, plus your own saved ones), sun and shadows, day, sunset or
+- **Look tab:** presets (Airy day, Warm sunset, Blue hour, Soft plan, White model, plus your own saved ones), sun and shadows, day, sunset or
   evening sky, haze in the distance, style (natural, soft, punchy, …), brightness, saturation, warmth, glow,
   lens flare (when the sun is in the picture), background (sky, white, or transparent PNG for Photoshop),
-  water, glass, leaves, glowing materials. A dot marks what you changed; double-click a slider to reset it.
+  white model (clay), water, glass, leaves, glowing materials. A dot marks what you changed; double-click a slider to reset it.
 - **Materials tab:** which words in a material name mean water, glass or glowing (editable, saved in
   SketchUp), and what is found automatically: plans (Parallel Projection), PNG trees, face-me components.
 - **Start render:** the image refines live with % and time left. **Save as…** writes a PNG. Batch renders

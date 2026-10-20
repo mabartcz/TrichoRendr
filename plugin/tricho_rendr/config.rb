@@ -12,7 +12,7 @@ module TrichoRendr
   LOOK = {
     'shadows' => true, 'time' => 'day', 'sun' => 100, 'softness' => 0, 'sky' => 100,
     'style' => 'natural', 'exposure' => 0, 'saturation' => 100, 'warmth' => 60, 'glow' => 0, 'flare' => 0, 'haze' => 0, 'background' => 'sky',
-    'water_tint' => 50, 'waves' => 50, 'glass' => 100, 'leaves' => 20, 'lamps' => 100
+    'clay' => false, 'water_tint' => 50, 'waves' => 50, 'glass' => 100, 'leaves' => 20, 'lamps' => 100
   }.freeze
   LOOK_RANGES = {
     'sun' => [0, 300], 'softness' => [0, 100], 'sky' => [0, 300], 'exposure' => [-3, 3], 'saturation' => [0, 200],
