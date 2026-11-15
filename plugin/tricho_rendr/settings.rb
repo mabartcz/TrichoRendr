@@ -1,11 +1,19 @@
 # Saved settings, look validation, and the keys that decide when an export can be reused.
 module TrichoRendr
+  # Own file in %LOCALAPPDATA%/TrichoRendr: SketchUp's write_default/read_default fails on JSON strings with
+  # quotes and only writes to disk when SketchUp closes cleanly.
+  SETTINGS_JSON = File.join(File.dirname(LOG_DIR), 'settings.json')
+
   def self.settings
-    saved = JSON.parse(Sketchup.read_default('TrichoRendr', 'settings', '{}')) rescue {}
+    saved = File.exist?(SETTINGS_JSON) ? JSON.parse(File.read(SETTINGS_JSON, encoding: 'UTF-8')) : {}
+    saved = {} unless saved.is_a?(Hash)
     saved.delete('width') unless saved.key?('height') # saved before fixed sizes existed: take the new default
     s = DEFAULTS.merge(saved.slice(*DEFAULTS.keys))
     s.merge('look' => clean_look(s['look']), 'words' => clean_words(s['words']),
             'presets' => clean_presets(s['presets']))
+  rescue StandardError => e
+    log("settings unreadable: #{e.message}")
+    DEFAULTS
   end
 
   # Known keys only, numbers clamped to their range, choices from their list; anything else -> default.

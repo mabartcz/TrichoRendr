@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+- Light mode for the render window (`☀︎` / `☾` toggle in the header), saved with the settings.
+- Fixed: saved presets and settings were lost after closing the window or restarting SketchUp (`Sketchup.read_default`
+  failed on JSON strings; settings now live in `%LOCALAPPDATA%\TrichoRendr\settings.json`).
+
 ## 0.4.0
 
 - Look: **White model (clay)**: everything white except water, glass, glowing materials and the outline of

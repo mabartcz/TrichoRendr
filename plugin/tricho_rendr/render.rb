@@ -6,11 +6,14 @@ module TrichoRendr
     s['height'] = s['height'].to_i.positive? ? s['height'].to_i.clamp(240, 7680) : 0
     s['samples'] = s['samples'].to_i.clamp(1, 4096)
     s['mode'] = 'view' unless s['mode'] == 'scenes'
+    s['theme'] = s['theme'] == 'light' ? 'light' : 'dark'
     s['look'] = clean_look(req['look'] || s['look'])
     s['words'] = clean_words(req['words'] || s['words'])
     s['presets'] = clean_presets(req['presets'] || s['presets'])
-    # ascii_only: SketchUp's defaults store may mangle non-ASCII words like "bazén"
-    Sketchup.write_default('TrichoRendr', 'settings', JSON.generate(s, ascii_only: true))
+    @state[:settings] = s if @state
+    FileUtils.mkdir_p(File.dirname(SETTINGS_JSON))
+    File.write("#{SETTINGS_JSON}.tmp", JSON.generate(s), encoding: 'UTF-8')
+    File.rename("#{SETTINGS_JSON}.tmp", SETTINGS_JSON)
     s
   end
 

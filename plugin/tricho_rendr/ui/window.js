@@ -172,11 +172,19 @@ const wordValues = () => Object.fromEntries(WORD_KINDS.map(k =>
   [k, $(`words-${k}`).value.split(/[,;\n]/).map(w => w.trim().toLowerCase()).filter(Boolean)]));
 const setWords = v => WORD_KINDS.forEach(k => { if (v[k]) $(`words-${k}`).value = v[k].join(', '); });
 
+function setTheme(light) {
+  document.documentElement.classList.toggle('light', light);
+  $('theme').textContent = light ? '\u263E' : '\u2600\uFE0E';
+  $('theme').title = light ? 'Switch to dark mode' : 'Switch to light mode';
+  try { localStorage.setItem('theme', light ? 'light' : 'dark'); } catch (e) {}
+}
+
 function settings() {
   const preset = $('preset').value;
   return {
     mode: radio('mode'), ...size(),
     samples: preset === 'custom' ? +$('samples').value : +preset,
+    theme: document.documentElement.classList.contains('light') ? 'light' : 'dark',
     scenes: (S.pages || []).filter(n => checked[n]), folder: S.folder, look: lookValues(), words: wordValues(), presets: mine,
   };
 }
@@ -317,11 +325,11 @@ function update(s) {
     const preset = [...$('preset').options].find(o => +o.value === st.samples);
     $('preset').value = preset ? preset.value : 'custom';
     $('samples').value = st.samples;
-    setLook(st.look || s.look_defaults || {});
-    setWords(st.words || s.words_defaults || {});
     mine = st.presets || [];
     buildMoods();
-    moodSync();
+    setLook(st.look || s.look_defaults || {});
+    setWords(st.words || s.words_defaults || {});
+    if (st.theme) setTheme(st.theme === 'light');
   }
   if (!s.batch) pinned = null; // pinned images come from batch results (gone after opening another model)
   if (!s.render && !pinned && !s.busy && tab === 'render') tab = 'view';
@@ -361,8 +369,10 @@ $('tab-render').onclick = () => { tab = 'render'; show(); };
 $('tab-stats').onclick = () => { tab = 'stats'; show(); };
 buildMoods();
 buildLook();
+try { setTheme(localStorage.getItem('theme') === 'light'); } catch (e) { setTheme(false); }
 const saveSettings = () => { if (inited && !S.busy) sketchup.save_settings?.(JSON.stringify(settings())); };
-document.querySelectorAll('aside select, aside input, aside textarea').forEach(e => e.onchange = () => { sync(); lookSync(); saveSettings(); });
+$('theme').onclick = () => { setTheme(!document.documentElement.classList.contains('light')); saveSettings(); };
+document.querySelectorAll('aside select, aside input:not(#mood-name), aside textarea').forEach(e => e.onchange = () => { sync(); lookSync(); saveSettings(); });
 $('look-reset').onclick = () => { if (!S.busy) { setLook(lookDefaults()); saveSettings(); } };
 $('mood').onchange = () => {
   const p = presetLook($('mood').value);
@@ -415,5 +425,43 @@ $('err-copy').onclick = () => {
   $('err-copy').textContent = ok ? 'Copied' : 'Could not copy: open the details and press Ctrl+C';
   setTimeout(() => { $('err-copy').textContent = 'Copy details'; }, 2500);
 };
+// Outside SketchUp (opened directly in a browser): stub the bridge with sample data so the UI can be previewed.
+if (typeof sketchup === 'undefined') {
+  const demoSvg = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 433">' +
+    '<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ec5e8"/><stop offset="1" stop-color="#dfeef9"/></linearGradient>' +
+    '<linearGradient id="grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7eb36a"/><stop offset="1" stop-color="#588c47"/></linearGradient>' +
+    '<linearGradient id="pool" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4fa8b8"/><stop offset="1" stop-color="#2c7d8f"/></linearGradient></defs>' +
+    '<rect width="1000" height="250" fill="url(#sky)"/><circle cx="820" cy="78" r="34" fill="#fff8d6" opacity=".9"/>' +
+    '<rect y="240" width="1000" height="193" fill="url(#grass)"/>' +
+    '<polygon points="140,255 430,255 390,340 90,340" fill="#e6dfd3"/>' +
+    '<rect x="160" y="135" width="240" height="120" fill="#f2ede4"/><rect x="185" y="160" width="85" height="95" fill="#7aaec4" opacity=".75"/>' +
+    '<rect x="290" y="160" width="85" height="70" fill="#7aaec4" opacity=".75"/><polygon points="145,135 415,135 395,105 165,105" fill="#6b5e53"/>' +
+    '<polygon points="470,290 790,290 830,385 430,385" fill="url(#pool)" stroke="#d8d2c7" stroke-width="8"/>' +
+    '<g fill="#4c8540"><circle cx="640" cy="195" r="52"/><circle cx="680" cy="180" r="62"/><circle cx="725" cy="200" r="48"/></g>' +
+    '<rect x="675" y="220" width="10" height="50" fill="#6e5039"/>' +
+    '<g fill="#5d994e"><circle cx="880" cy="210" r="42"/><circle cx="910" cy="195" r="48"/></g>' +
+    '<rect x="892" y="230" width="8" height="40" fill="#6e5039"/></svg>');
+  window.sketchup = {
+    log() {}, frame() {}, pick_folder() {}, open_folder() {}, open_logs() {}, refresh() {}, save() {},
+    save_settings(json) { try { localStorage.setItem('tr_settings', json); } catch (e) {} },
+    cancel() { update({ ...S, busy: false, pct: null, eta: null, status: 'Cancelled' }); },
+    start() { update({ ...S, busy: true, pct: 42, eta: 18, status: 'Step 3/3 · Rendering… 14/32 samples', render: demoSvg }); },
+    ready() {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem('tr_settings') || '{}'); } catch (e) {}
+      update({
+        version: '0.4.1', status: 'Ready', view: demoSvg, render: demoSvg, aspect: 16 / 9,
+        settings: { width: 3000, height: 1300, samples: 32, mode: 'view', theme: 'dark', look: BASIC, ...saved },
+        look_defaults: { ...BASIC, sun: 100, softness: 0, sky: 100, exposure: 0, warmth: 60 },
+        words_defaults: { water: ['water', 'voda', 'bazén', 'jezír', 'pond'], glass: ['glass', 'sklo', 'okno'], glow: ['glow', 'emit', 'svit', 'lamp'] },
+        pages: ['Garden overview', 'Terrace pergola', 'Pond detail', 'Top plan (půdorys)'], current_page: 'Garden overview',
+        folder: 'C:/Users/Anna/Documents/Zahrada renders',
+        usage: { since: '2026-03-01', days: 14, done: 48, failed: 1, cancelled: 3, seconds: 2840, longest: 145,
+                 pixels: 187200000, paths: 5990400000, triangles: 64200000, biggest: 3150000, faceme: 1840, scenes: 19 },
+      });
+    },
+  };
+}
 log(`page: ${location.href} ua=${navigator.userAgent}`);
 sketchup.ready();

@@ -28,7 +28,7 @@ module TrichoRendr
     'glow' => %w[glow emit svit lamp lampa osvětlení oheň]
   }.freeze
   # height 0 = follow the viewport's shape
-  DEFAULTS = { 'width' => 3000, 'height' => 1300, 'samples' => 32, 'mode' => 'view',
+  DEFAULTS = { 'width' => 3000, 'height' => 1300, 'samples' => 32, 'mode' => 'view', 'theme' => 'dark',
                'look' => LOOK, 'words' => WORDS, 'presets' => [] }.freeze
 
   def self.blender
