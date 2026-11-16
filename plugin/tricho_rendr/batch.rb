@@ -95,7 +95,11 @@ module TrichoRendr
     b[:items].each { |it| it[:status] = 'skipped' if %w[waiting active].include?(it[:status]) }
     model = Sketchup.active_model
     back = model.pages[b[:back_to]] if b[:back_to]
-    model.pages.selected_page = back if back
+    if back
+      self.switching = true
+      model.pages.selected_page = back
+      self.switching = false
+    end
     done = b[:items].count { |it| it[:status] == 'done' }
     log("batch: finished #{done}/#{b[:items].size} in #{b[:times].sum.round} s")
     state = batch_state

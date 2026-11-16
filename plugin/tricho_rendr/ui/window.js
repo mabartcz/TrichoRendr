@@ -72,7 +72,8 @@ let mine = []; // [{name, look}]
 function presetLook(id) {
   const p = id.startsWith('my:') ? mine[+id.slice(3)]?.look : PRESETS[id]?.[1];
   if (!p) return null;
-  return Object.fromEntries(MOOD.map(k => [k, id.startsWith('my:') ? p[k] : (k in p ? p[k] : BASIC[k])]));
+  const base = id.startsWith('my:') ? lookDefaults() : BASIC;
+  return Object.fromEntries(MOOD.map(k => [k, k in p ? p[k] : base[k]]));
 }
 
 function buildMoods() {
@@ -315,6 +316,8 @@ function update(s) {
   if (!inited) log(`update: first state view=${s.view} busy=${s.busy} pages=${(s.pages || []).length}`);
   if (!inited && s.settings) {
     inited = true;
+    let local = {};
+    try { local = JSON.parse(localStorage.getItem('tr_settings') || '{}'); } catch (e) {}
     const st = s.settings;
     document.querySelector(`input[name=mode][value="${st.mode || 'view'}"]`).checked = true;
     const key = st.height ? `${st.width}x${st.height}` : String(st.width);
@@ -325,11 +328,13 @@ function update(s) {
     const preset = [...$('preset').options].find(o => +o.value === st.samples);
     $('preset').value = preset ? preset.value : 'custom';
     $('samples').value = st.samples;
-    mine = st.presets || [];
+    const fromLocal = !st.presets?.length && Array.isArray(local.presets) && local.presets.length;
+    mine = fromLocal ? local.presets : (st.presets || []);
     buildMoods();
     setLook(st.look || s.look_defaults || {});
     setWords(st.words || s.words_defaults || {});
     if (st.theme) setTheme(st.theme === 'light');
+    if (fromLocal) saveSettings(); else persistLocal();
   }
   if (!s.batch) pinned = null; // pinned images come from batch results (gone after opening another model)
   if (!s.render && !pinned && !s.busy && tab === 'render') tab = 'view';
@@ -370,7 +375,8 @@ $('tab-stats').onclick = () => { tab = 'stats'; show(); };
 buildMoods();
 buildLook();
 try { setTheme(localStorage.getItem('theme') === 'light'); } catch (e) { setTheme(false); }
-const saveSettings = () => { if (inited && !S.busy) sketchup.save_settings?.(JSON.stringify(settings())); };
+const persistLocal = (s = settings()) => { try { localStorage.setItem('tr_settings', JSON.stringify(s)); } catch (e) {} return s; };
+const saveSettings = () => { if (inited && !S.busy) sketchup.save_settings?.(JSON.stringify(persistLocal())); };
 $('theme').onclick = () => { setTheme(!document.documentElement.classList.contains('light')); saveSettings(); };
 document.querySelectorAll('aside select, aside input:not(#mood-name), aside textarea').forEach(e => e.onchange = () => { sync(); lookSync(); saveSettings(); });
 $('look-reset').onclick = () => { if (!S.busy) { setLook(lookDefaults()); saveSettings(); } };
@@ -389,15 +395,17 @@ $('mood-ok').onclick = () => {
   nameRow(false);
   buildMoods();
   moodSync();
+  log(`preset: saved "${name}" (total ${mine.length})`);
   saveSettings();
 };
 $('mood-name').onkeydown = e => { if (e.key === 'Enter') $('mood-ok').onclick(); if (e.key === 'Escape') nameRow(false); };
 $('mood-delete').onclick = () => {
   const v = $('mood').value;
   if (S.busy || !v.startsWith('my:')) return;
-  mine.splice(+v.slice(3), 1);
+  const removed = mine.splice(+v.slice(3), 1)[0];
   buildMoods();
   moodSync();
+  log(`preset: deleted "${removed?.name}" (total ${mine.length})`);
   saveSettings();
 };
 $('words-reset').onclick = () => { if (!S.busy) { setWords(S.words_defaults || {}); saveSettings(); } };
@@ -405,7 +413,10 @@ $('all').onchange = () => { (S.pages || []).forEach(n => checked[n] = $('all').c
 $('pick').onclick = () => sketchup.pick_folder();
 $('refresh').onclick = () => { $('refresh').textContent = 'Updating…'; setTimeout(() => sketchup.refresh(), 30); };
 $('open').onclick = () => sketchup.open_folder();
-$('start').onclick = () => sketchup.start(JSON.stringify(settings()));
+$('start').onclick = () => {
+  if (!$('mood-new').hidden && $('mood-name').value.trim()) $('mood-ok').onclick();
+  sketchup.start(JSON.stringify(persistLocal()));
+};
 $('cancel').onclick = () => sketchup.cancel();
 $('save').onclick = () => sketchup.save(pinned || '');
 // Both "Open logs folder" links; the Stats one is rebuilt with the tab, so listen on the document.
@@ -451,7 +462,7 @@ if (typeof sketchup === 'undefined') {
       let saved = {};
       try { saved = JSON.parse(localStorage.getItem('tr_settings') || '{}'); } catch (e) {}
       update({
-        version: '0.4.1', status: 'Ready', view: demoSvg, render: demoSvg, aspect: 16 / 9,
+        version: '0.4.2', status: 'Ready', view: demoSvg, render: demoSvg, aspect: 16 / 9,
         settings: { width: 3000, height: 1300, samples: 32, mode: 'view', theme: 'dark', look: BASIC, ...saved },
         look_defaults: { ...BASIC, sun: 100, softness: 0, sky: 100, exposure: 0, warmth: 60 },
         words_defaults: { water: ['water', 'voda', 'bazén', 'jezír', 'pond'], glass: ['glass', 'sklo', 'okno'], glow: ['glow', 'emit', 'svit', 'lamp'] },

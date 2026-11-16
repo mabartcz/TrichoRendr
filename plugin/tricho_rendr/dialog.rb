@@ -2,6 +2,8 @@
 module TrichoRendr
   # The extension button: open the window with an instant viewport preview and the settings.
   def self.open
+    load File.join(__dir__, 'main.rb') if (@loaded_mtime ||= File.mtime(__FILE__)) != File.mtime(__FILE__)
+    @loaded_mtime = File.mtime(__FILE__)
     unless @app_watched
       @app_watched = true
       Sketchup.add_observer(AppWatch.new)
@@ -22,10 +24,10 @@ module TrichoRendr
       model.add_observer(Watch.new)
       model.active_view.add_observer(ViewWatch.new)
     end
-    @state.merge!(version: Sketchup.extensions['TrichoRendr']&.version, settings: settings, look_defaults: LOOK,
+    @state.merge!(version: VERSION, settings: settings, look_defaults: LOOK,
                   words_defaults: WORDS, usage: usage, pages: model.pages.map(&:name),
                   current_page: model.pages.selected_page&.name,
-                  folder: @folders[model.path] ||= default_folder(model))
+                  folder: @folders[model.path.tr('\\', '/')] ||= default_folder(model))
   end
 
   def self.model_changed
@@ -118,8 +120,9 @@ module TrichoRendr
     dir = UI.select_directory(title: 'Save renders to', directory: @state[:folder])
     return unless dir
 
-    @folders[Sketchup.active_model.path] = dir.tr('\\', '/')
-    push(folder: @folders[Sketchup.active_model.path])
+    key = Sketchup.active_model.path.tr('\\', '/')
+    @folders[key] = dir.tr('\\', '/')
+    push(folder: @folders[key])
   end
 
   def self.open_folder

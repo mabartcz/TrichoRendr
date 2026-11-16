@@ -5,7 +5,12 @@ module TrichoRendr
   SETTINGS_JSON = File.join(File.dirname(LOG_DIR), 'settings.json')
 
   def self.settings
-    saved = File.exist?(SETTINGS_JSON) ? JSON.parse(File.read(SETTINGS_JSON, encoding: 'UTF-8')) : {}
+    text = if File.exist?(SETTINGS_JSON)
+             File.read(SETTINGS_JSON, encoding: 'UTF-8')
+           else
+             Sketchup.read_default('TrichoRendr', 'settings', '{}')
+           end
+    saved = JSON.parse(text) rescue {}
     saved = {} unless saved.is_a?(Hash)
     saved.delete('width') unless saved.key?('height') # saved before fixed sizes existed: take the new default
     s = DEFAULTS.merge(saved.slice(*DEFAULTS.keys))
@@ -79,7 +84,7 @@ module TrichoRendr
   def self.saved_key(model, vis = nil)
     return nil if model.modified? || model.path.empty? || !File.exist?(model.path)
 
-    [model.path, File.mtime(model.path).to_f, File.size(model.path), vis || visibility(model),
+    [model.path.tr('\\', '/'), File.mtime(model.path).to_f, File.size(model.path), vis || visibility(model),
      model.rendering_options['FaceFrontColor'].to_a]
   end
 
@@ -107,13 +112,11 @@ module TrichoRendr
   USAGE_JSON = File.join(File.dirname(LOG_DIR), 'usage.json')
 
   def self.usage
-    @usage ||= begin
-      text = File.exist?(USAGE_JSON) ? File.read(USAGE_JSON) : Sketchup.read_default('TrichoRendr', 'usage', '{}')
-      u = JSON.parse(text)
-      u.is_a?(Hash) ? u : {}
-    rescue StandardError
-      {}
-    end
+    text = File.exist?(USAGE_JSON) ? File.read(USAGE_JSON) : Sketchup.read_default('TrichoRendr', 'usage', '{}')
+    u = JSON.parse(text)
+    u.is_a?(Hash) ? u : {}
+  rescue StandardError
+    {}
   end
 
   # result: :done | :failed | :cancelled; job: size, samples and export numbers of that render.
@@ -135,7 +138,6 @@ module TrichoRendr
       u['faceme'] = u['faceme'].to_i + job[:faceme]
       u['scenes'] = u['scenes'].to_i + 1 if job[:batch]
     end
-    @usage = u
     FileUtils.mkdir_p(File.dirname(USAGE_JSON))
     File.write("#{USAGE_JSON}.tmp", JSON.generate(u))
     File.rename("#{USAGE_JSON}.tmp", USAGE_JSON) # a crash mid-write leaves the old file, not half a new one

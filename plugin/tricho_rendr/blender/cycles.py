@@ -219,7 +219,6 @@ report(pct=60)
 for i, (f, bk) in enumerate(pairs):
     report(pct=60 + 40 * i / len(pairs))
     bm = bpy.data.materials.new(f'm{f}_{bk}')
-    bm.use_nodes = True
     nt = bm.node_tree
     nt.nodes.clear()
     out, geo, mix = nt.nodes.new('ShaderNodeOutputMaterial'), nt.nodes.new('ShaderNodeNewGeometry'), nt.nodes.new('ShaderNodeMixShader')
@@ -250,7 +249,6 @@ sc.camera = cam
 
 # --- sun + sky ---
 world = bpy.data.worlds.new('world')
-world.use_nodes = True
 sc.world = world
 wn = world.node_tree
 sky, bg = wn.nodes.new('ShaderNodeTexSky'), wn.nodes['Background']

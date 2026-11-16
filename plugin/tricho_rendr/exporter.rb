@@ -150,10 +150,11 @@ module TrichoRendr
       end
     end
 
-    # ponytail: cache key ignores edits to the image itself with the same name/size; clear TEX_CACHE if stale
+    # ponytail: cache key ignores edits to the image itself with the same name/size; clear TEX_CACHE if stale.
+    # Not keyed by model.guid: SketchUp changes model.guid on every edit/save, which would re-write all textures.
     def texture_file(m)
       t = m.texture
-      key = Digest::MD5.hexdigest([@model.guid, m.name, t.filename, t.image_width, t.image_height,
+      key = Digest::MD5.hexdigest([m.name, t.filename, t.image_width, t.image_height,
                                    m.colorize_type, m.color.to_a].join('|'))
       path = File.join(TEX_CACHE, "#{key}.png")
       if File.exist?(path)

@@ -1,5 +1,6 @@
 # Paths, defaults and small helpers shared by the whole plugin.
 module TrichoRendr
+  VERSION = '0.4.2'
   EXE = File.join(__dir__, 'bin', 'tricho_rendr.exe') # launcher, built by `cargo xtask build`
   CYCLES_PY = File.join(__dir__, 'blender', 'cycles.py')
   HTML = File.join(__dir__, 'ui', 'window.html')

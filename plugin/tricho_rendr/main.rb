@@ -12,9 +12,19 @@ require_relative 'batch'
 require_relative 'dialog'
 
 module TrichoRendr
-  unless file_loaded?(__FILE__)
+  if file_loaded?(__FILE__)
+    v = $VERBOSE
+    begin
+      $VERBOSE = nil
+      %w[config exporter observers settings render batch dialog].each { |f| load File.join(__dir__, "#{f}.rb") }
+    ensure
+      $VERBOSE = v
+    end
+    Sketchup.extensions['TrichoRendr']&.version = VERSION
+    log("reloaded: v#{VERSION}, SketchUp #{Sketchup.version}, Ruby #{RUBY_VERSION}")
+  else
     start_log
-    log("loaded: SketchUp #{Sketchup.version}, Ruby #{RUBY_VERSION}, blender=#{blender.inspect}")
+    log("loaded: v#{VERSION}, SketchUp #{Sketchup.version}, Ruby #{RUBY_VERSION}, blender=#{blender.inspect}")
     cmd = UI::Command.new('TrichoRendr') { guard { open } }
     cmd.tooltip = 'TrichoRendr'
     cmd.status_bar_text = 'Open the TrichoRendr render window.'

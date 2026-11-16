@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.2
+
+- Fixed: installing a new `.rbz` in SketchUp's Extension Manager now reloads the Ruby code immediately without
+  needing to restart SketchUp, and presets/settings are also backed up in the window's `localStorage`.
+- Faster exports: textures in `%TEMP%\TrichoRendr_tex` stay cached across model edits and saves (`model.guid`
+  changed on every edit, which forced all textures to be re-written).
+- Faster scene switching: clicking a Scene tab in SketchUp no longer counts as a model edit, so scenes with the
+  same visible tags/objects reuse the existing geometry export immediately.
+- Fixed: Stats (`usage.json`) no longer reset when two SketchUp windows are open at the same time.
+
 ## 0.4.1
 
 - Light mode for the render window (`☀︎` / `☾` toggle in the header), saved with the settings.
